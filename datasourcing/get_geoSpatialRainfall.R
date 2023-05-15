@@ -12,6 +12,9 @@ if(any(installed_packages == FALSE)){
 invisible(lapply(packages_required, library, character.only = TRUE))
 
 
+
+#################################################################################################################
+#################################################################################################################
 # 2. Function to crop the rainfall data over the use case extent -------------------------------------------
 #' @description a function to crop the rainfall global layer but this does duplicate a large volume of data , it is better directly to source from the global data
 #' @param country country name
@@ -63,6 +66,11 @@ crop_geoSpatial_rainfall <- function(country, useCaseName, Crop, dataSource, ove
   return(croppedLayer_rf)
 }
 
+
+
+#################################################################################################################
+#################################################################################################################
+
 # 3. Function to get seasonal rainfall parameters for point data over the cropping season  -------------------------------------------
 #' @description is a function to get total rainfall, number of rainy days and monthly rainfall, and working when the planting and harvest happen in different years
 #' @param raster1 the .nc file for the planting year, within get_rf_pointdata function, this is provided by the function 
@@ -101,6 +109,7 @@ summary_pointdata_rainfall <- function(rastLayer1=NULL, rastLayer2=NULL, gpsdata
   ## The number of rainy days (thr= 2 mm) over the growing period 
     xy$nrRainyDays <- NULL
     for (m in 1:nrow(raini)){
+      print(m)
       mdata <- raini[m, ]
       mdata[mdata < 2] <- 0
       mdata[mdata >= 2] <- 1
@@ -108,10 +117,11 @@ summary_pointdata_rainfall <- function(rastLayer1=NULL, rastLayer2=NULL, gpsdata
       
   ## The monthly rainfall, at 31 days interval and the remaining  days at the end, over the growing period
       mrdi <- raini[m, ]
-      mdiv <- c(seq(1, length(mrdi), 30), length(mrdi))
+      mdiv <- unique(c(seq(1, length(mrdi), 30), length(mrdi)))
       
       mrf <- c()
       for (k in 1:(length(mdiv)-1)) {
+        print(k)
         if(k == 1){
           mrf <- c(mrf, sum(mrdi[c(mdiv[k]:mdiv[k+1])]))
         }else{
@@ -130,13 +140,21 @@ summary_pointdata_rainfall <- function(rastLayer1=NULL, rastLayer2=NULL, gpsdata
       }
     }
   
-  
-  xy$plantingYear <- str_extract(raster1, "[[:digit:]]+")
-  xy$harvestYear <- str_extract(raster2, "[[:digit:]]+")
+  if(planting_harvest_sameYear== TRUE){
+    xy$plantingYear <- str_extract(rastLayer1, "[[:digit:]]+")
+    xy$harvestYear <- str_extract(rastLayer1, "[[:digit:]]+")
+  }else{
+    xy$plantingYear <- str_extract(rastLayer1, "[[:digit:]]+")
+    xy$harvestYear <- str_extract(rastLayer2, "[[:digit:]]+")
+  }
+
   return(xy)
 }
 
 
+
+#################################################################################################################
+#################################################################################################################
 # 4. Extract rainfall data time series for point based data -------------------------------------------
 #' @description this functions loops through all .nc files (~30 - 40 years) for rainfall to provide point based data.
 #' @details for AOI it requires a "AOI_GPS.RDS" data frame with c("longitude","latitude") columns being saved in 
@@ -151,7 +169,6 @@ summary_pointdata_rainfall <- function(rastLayer1=NULL, rastLayer2=NULL, gpsdata
 #' @param overwrite default is FALSE 
 #' @param Planting_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual planting date is be used so no need to change the default value
 #' @param Harvest_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual harvest date is be used so no need to change the default value
-#' @param planting_harvest_sameYear is needed only for AOI ans set it to true if the planting and harvest are all within the same year, false otherwise.
 #' @param jobs defines how many cores to use for parallel data sourcing
 #' @param season used to formulate a file name and is useful when data for different seasons is needed 
 #' @param dataSource is one of c("CHIRPS", "AgEra")
@@ -160,14 +177,13 @@ summary_pointdata_rainfall <- function(rastLayer1=NULL, rastLayer2=NULL, gpsdata
 #' the data frame contains daily rainfall for every GPS point. 
 #' For the trial sites: it provides:longitude, latitude, plantingDate and harvestDate as yyyy-mm-dd, yearPi & yearHi as yyyy, 
 #' pl_j & hv_j as date of the year for panting & harvest, growinglength and daily rainfall by date, NA for dates not part of the growing season for a trial
-#' For AOI: it provides dily rainfall for ll dates between Planting_month_date and harvest_month_dates plus 
+#' For AOI: it provides dily rainfall for ll dates between Planting_month_date and Harvest_month_dates plus 
 #' plantingYear, harvestYear, longitude, latitude   
 #' 
 #' @examples: get_summaries(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE, overwrite = TRUE,
-#'             season="season1", Planting_month_date = "07-01",  harvest_month_date = "11-30", planting_harvest_sameYear = TRUE, jobs=10)
+#'             season="season1", Planting_month_date = "07-01",  Harvest_month_date = "11-30", jobs=10)
 get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
                                   Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                                  planting_harvest_sameYear = TRUE,
                                   jobs = 10, season="season_1", dataSource){
  
   # 4.1. Initialization of input and output data ####
@@ -185,7 +201,6 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
   pathOut1 <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/feature/Rainfall", sep="")
   pathOut2 <- paste("/home/jovyan/agwise/AgWise_Data/potential_yield/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Rainfall", sep="")
   pathOut3 <- paste("/home/jovyan/agwise/AgWise_Data/response_functions/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Rainfall", sep="")
-  
 
   if (!dir.exists(pathOut1)){
     dir.create(file.path(pathOut1), recursive = TRUE)
@@ -204,6 +219,16 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
     countryCoord <- readRDS(paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/AOI_GPS.RDS", sep=""))
     countryCoord <- unique(countryCoord[, c("longitude", "latitude")])
     countryCoord <- countryCoord[complete.cases(countryCoord), ]
+    
+    ## check if both planting and harvest dates are in the same year
+    Planting_month <- as.numeric(str_extract(Planting_month_date, "[^-]+"))
+    harvest_month <- as.numeric(str_extract(Harvest_month_date, "[^-]+"))
+    if(Planting_month < harvest_month){
+      planting_harvest_sameYear <- TRUE
+    }else{
+      planting_harvest_sameYear <- FALSE
+    }
+    
     if (planting_harvest_sameYear ==TRUE){ #is used only to get the date of the year so the years 2001 and 2002 have no value except for formating 
       countryCoord$plantingDate <- paste(2001, Planting_month_date, sep="-")
       countryCoord$harvestDate <- paste(2001, Harvest_month_date, sep="-")
@@ -287,10 +312,10 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
     }
   
     # 4.3. Compute the seasonal rainfall parameters for trial data ####
-    ## when the planting and harvest dates varies for every row of data because it is actual trial data
+    # when the planting and harvest dates varies for every row of data because it is actual trial data
   }else {
     
-    ## 4.3.1. Get the planting and harvesting dates 
+    ## 4.3.1. Get the planting and harvesting dates ####
     # Get the Year
     ground$yearPi <- format(as.POSIXlt(ground$Planting), "%Y")
     ground$yearHi <- format(as.POSIXlt(ground$Harvesting), "%Y")
@@ -386,8 +411,10 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
 
 
 
-
-#' @description this functions loops through all .nc files (~30 -40 years) for rainfall, and min and max temp to provide point based data.
+#################################################################################################################
+#################################################################################################################
+# 5. Extract the season rainfall parameters for point based data -------------------------------------------
+#' @description this functions loops through all .nc files (~30 -40 years) for rainfall to provide point based seasonal rainfall parameters.
 #' @details for AOI it requires a "AOI_GPS.RDS" data frame with c("longitude","latitude") columns being saved in 
 #'                            paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw", sep="") 
 #'          for trial sites it requires a "compiled_fieldData.RDS" data frame with c("lon", "lat", "plantingDate", "harvestDate") beinf saved in 
@@ -399,8 +426,7 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
 #' @param AOI True if the data is required for target area, and false if it is for trial sites
 #' @param overwrite default is FALSE 
 #' @param Planting_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual planting date is be used so no need to change the default value
-#' @param harvest_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual harvest date is be used so no need to change the default value
-#' @param planting_harvest_sameYear is needed only for AOI ans set it to true if the planting and harvest are all within the same year, false otherwise.
+#' @param Harvest_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual harvest date is be used so no need to change the default value
 #' @param jobs defines how many cores to use for parallel data sourcing
 #' @param season used to formulate a file name and is useful when data for different seasons is needed 
 #' @param dataSource is among c("CHIRPS", "AgEra")
@@ -409,30 +435,29 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
 #'        totalRF : Total rainfall between pl_Date and hv_Date (mm)
 #'        nrRainyDays : Number of rainy days between pl_Date and hv_Date (days)
 #'        di : Average daily rainfall between pl_Date and hv_Date (mm/day)
-#'        tmin : Average tmin temperature between pl_Date and hv_Date 
-#'        tmax : Average tmax temperature between pl_Date and hv_Date
 #'        monthlyRF_x: total monthly rainfall 
-#' @examples: get_summaries(country = "Rwanda";  useCaseName = "RAB"; Crop = "Potato"; AOI = FALSE; overwrite = TRUE;
-#' season="season1";Planting_month_date = "07-01";  harvest_month_date = "11-30"; planting_harvest_sameYear = TRUE; jobs=10)
+#' @examples: get_rf_pointSummarydata(country = "Rwanda";  useCaseName = "RAB"; Crop = "Potato"; AOI = FALSE; overwrite = TRUE;
+#' season="season1";Planting_month_date = "07-01";  Harvest_month_date = "11-30";jobs=10)
 get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
-                                         Planting_month_date = "02-01", harvest_month_date = "05-30", 
-                                         planting_harvest_sameYear = TRUE,
+                                         Planting_month_date = "02-01", Harvest_month_date = "05-30", 
                                          jobs = 10, season="season_1", dataSource){
   
   ## define the directories stor the result and also read list of .nc files 
   ## TODO this should read the cropped data from data_sourcing/raw in stead of the global data
   
+  # 5.1. Initialization of input and output data ####
+  
+  # Input rainfall
   if(dataSource == "CHIRPS"){
     listRaster_CHIRPS <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Rainfall/chirps", pattern=".nc$", full.names = TRUE)
   }else{
     listRaster_CHIRPS <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Rainfall/AgEra", pattern=".nc$", full.names = TRUE)
   }
   
+  # Creation of the output dir
   pathOut1 <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/feature/Rainfall", sep="")
   pathOut2 <- paste("/home/jovyan/agwise/AgWise_Data/potential_yield/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Rainfall", sep="")
   pathOut3 <- paste("/home/jovyan/agwise/AgWise_Data/response_functions/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Rainfall", sep="")
-  
-  
   
   if (!dir.exists(pathOut1)){
     dir.create(file.path(pathOut1), recursive = TRUE)
@@ -446,17 +471,27 @@ get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ove
     dir.create(file.path(pathOut3), recursive = TRUE)
   }
   
-  
+  # Input point data AOI / Trial
   if(AOI == TRUE){
     countryCoord <- readRDS(paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/AOI_GPS.RDS", sep=""))
     countryCoord <- unique(countryCoord[, c("longitude", "latitude")])
     countryCoord <- countryCoord[complete.cases(countryCoord), ]
+    
+    ## check if both planting and harvest dates are in the same year
+    Planting_month <- as.numeric(str_extract(Planting_month_date, "[^-]+"))
+    harvest_month <- as.numeric(str_extract(Harvest_month_date, "[^-]+"))
+    if(Planting_month < harvest_month){
+      planting_harvest_sameYear <- TRUE
+    }else{
+      planting_harvest_sameYear <- FALSE
+    }
+    
     if (planting_harvest_sameYear ==TRUE){ #is used only to get the date of the year so the years 2001 and 2002 have no value except for formating 
       countryCoord$plantingDate <- paste(2001, Planting_month_date, sep="-")
-      countryCoord$harvestDate <- paste(2001, harvest_month_date, sep="-")
+      countryCoord$harvestDate <- paste(2001, Harvest_month_date, sep="-")
     }else{
       countryCoord$plantingDate <- paste(2001, Planting_month_date, sep="-")
-      countryCoord$harvestDate <- paste(2002, harvest_month_date, sep="-")
+      countryCoord$harvestDate <- paste(2002, Harvest_month_date, sep="-")
     }
     
   }else{
@@ -466,38 +501,37 @@ get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ove
     names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate")
   }
   
-  
-  
-  # 2. the ground data ####
   ground <- countryCoord[, c("longitude", "latitude", "plantingDate", "harvestDate")]
   ground <- ground[complete.cases(ground),]
   
   ground$Planting <- as.Date(ground$plantingDate, "%Y-%m-%d") # Planting date in Date format
   ground$Harvesting <- as.Date(ground$harvestDate, "%Y-%m-%d") # Harvesting date in Date format
   
-  
+  # 5.2. Compute the seasonal rainfall parameters for AOI ####
   if(AOI == TRUE){
     
-    ### 3.1.1 Convert planting Date and harvesting in Julian Day ####
+    # Convert planting Date and harvesting in Julian Day 
     pl_j <-as.POSIXlt(unique(ground$Planting))$yday
     hv_j <-as.POSIXlt(unique(ground$Harvesting))$yday
     
+    ## 5.2.1. Case planting and harvesting dates span the same year ####
     if (planting_harvest_sameYear ==  TRUE) {
       
       cls <- makeCluster(jobs)
       doParallel::registerDoParallel(cls)
       
-      ### 3.1.2 Read for the corresponding year and date
+      # Loop over all the years 
       rf_result <- foreach(i=1:length(listRaster_CHIRPS), .packages = c('terra', 'plyr', 'stringr','tidyr')) %dopar% {
         rast1 <- listRaster_CHIRPS[i]
         source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialRainfall.R", local = TRUE)
-        summary_pointdata_rainfall(rastLayer1=rast1, rastLayer1 = NULL, gpsdata = ground, pl_j=pl_j, hv_j=hv_j, planting_harvest_sameYear = TRUE)
+        summary_pointdata_rainfall(rastLayer1=rast1, rastLayer2 = NULL, gpsdata = ground, pl_j=pl_j, hv_j=hv_j, planting_harvest_sameYear = TRUE)
       }
       rainfall_points <- do.call(rbind, rf_result)
       
       stopCluster(cls)
     }
-    
+  
+    ## 5.2.2. Case planting and harvesting dates span two different years ####
     if (planting_harvest_sameYear ==  FALSE) {
       cls <- makeCluster(jobs)
       doParallel::registerDoParallel(cls)
@@ -508,44 +542,45 @@ get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ove
         source("~/agwise/AgWise_Scripts/data_sourcing/get_rain_temp_summary.R", local = TRUE)
         rast1 <- listRaster_CHIRPS[i]
         rast2 <- listRaster_CHIRPS[i+1]
-        summary_pointdata_rainfall(rastLayer1=rast1, rastLayer1 = rast2, gpsdata = ground, pl_j=pl_j, hv_j=hv_j, planting_harvest_sameYear = TRUE)
+        summary_pointdata_rainfall(rastLayer1=rast1, rastLayer2 = rast2, gpsdata = ground, pl_j=pl_j, hv_j=hv_j, planting_harvest_sameYear = TRUE)
       }
       rainfall_points <- do.call(rbind, rf_result2)
       
       stopCluster(cls)
-      
     }
     
-  }else {## when the planting and harvest dates varies for every row of data because it is actual trial data
+    # 5.3. Compute the seasonal rainfall parameters for trial data ####
+    # when the planting and harvest dates varies for every row of data because it is actual trial data
+  }else {
     
-    
-    # 3 Loop on all the ID to calculate the parameters ####
+    # Loop on all the ID to calculate the parameters 
     rainfall_points <- NULL
     for(i in 1:nrow(ground)){
       print(i)
+      
       # Extract the information for the i-th row
       groundi <- ground[i,]
       
-      # Test if the cropping season overlaps two civil year
+      # Get the years
       yearPi <- format(as.POSIXlt(groundi$Planting), "%Y")
       yearHi <- format(as.POSIXlt(groundi$Harvesting), "%Y")
-      ### 3.2.1 Convert planting Date and harvesting in Julian Day ####
+      
+      # Convert planting Date and harvesting in Julian Day 
       pl_j <-as.POSIXlt(groundi$Planting)$yday
       hv_j <-as.POSIXlt(groundi$Harvesting)$yday
       
-      ## 3.1 Case same year ####
+      ## 5.3.1. Case planting and harvesting dates span the same year ####
       if (yearPi == yearHi) {
-        ### 3.1.2 Read for the corresponding year and date ####
-        ## Rainfall
+        
+        # Read for the corresponding year and date 
         rasti<-listRaster_CHIRPS[which(grepl(yearPi, listRaster_CHIRPS, fixed=TRUE) == T)]
         rasti <- terra::rast(rasti, lyrs=c(pl_j:hv_j))
       }
       
-      ## 3.2 Case two years ####
+      ## 5.3.2 Case planting and harvesting dates span two different years ####
       if (yearPi < yearHi) {
         
-        ### 3.2.2 Read for the corresponding years and date ####
-        ## Rainfall
+        # Read for the corresponding years and date 
         rasti1<-listRaster_CHIRPS[which(grepl(yearPi, listRaster_CHIRPS, fixed=TRUE) == T)]
         rasti1 <- terra::rast(rasti1, lyrs=c(pl_j:terra::nlyr(terra::rast(rasti1))))
         rasti2 <-listRaster_CHIRPS[which(grepl(yearHi, listRaster_CHIRPS, fixed=TRUE) == T)]
@@ -554,13 +589,12 @@ get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ove
        
       }
       
-      ### 3.3 Extract the information for the i-th row ####
+      ## 5.3.3 Extract the information for the i-th row ####
       xy <- groundi[, c("longitude", "latitude")]
       xy <- xy %>%
         mutate_if(is.character, as.numeric)
       
       rainfall_points_i <- terra::extract(rasti, xy,method='simple', cells=FALSE)
-      
       
       ## get year
       groundi$Year <- yearPi
@@ -568,13 +602,11 @@ get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ove
       # Compute the total amount of rainfall
       groundi$totalRF <- sum(rainfall_points_i[c(2:length(rainfall_points_i))])
       
-      
       # Compute the Number of rainy day
       nrdi <- rainfall_points_i[c(2:length(rainfall_points_i))]
       nrdi[nrdi < 2] <- 0
       nrdi[nrdi >= 2] <- 1
       groundi$nrRainyDays <- sum(nrdi)
-      
       
       # Compute monthly rainfall, at 31 days interval and the remaining  days at the end
       mrdi <- rainfall_points_i[c(2:length(rainfall_points_i))]
@@ -608,11 +640,11 @@ get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ove
                                 select_if(~sum(!is.na(.)) > 0)
   
   
-  # 4 Writting of output: Check if the directory exists
+  ## 5.4 Writting of output #### 
+  # Check if the directory exists
   Planting_month_date <- gsub("-", "_", Planting_month_date)
   
   fname_rain <- ifelse(AOI == "TRUE", paste("Rainfall_summaries_AOI_", season,"_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste("Rainfall_summaries_trial_", dataSource, ".RDS", sep=""))
-  
   
   saveRDS(object = rainfall_points, file=paste(pathOut1, fname_rain, sep="/"))
   saveRDS(object = rainfall_points, file=paste(pathOut2, fname_rain, sep="/"))
@@ -630,83 +662,5 @@ get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ove
 
 
 
-
-
-
-
-# listRaster_Tmax <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/TemperatureMax/AgEra", pattern=".nc$", full.names = TRUE)
-# listRaster_Tmin <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/TemperatureMin/AgEra", pattern=".nc$", full.names = TRUE)
-
-
-# tmax_result <- foreach(i=1:(length(listRaster_Tmax)-1), .packages = c('terra', 'plyr', 'stringr','tidyr')) %dopar% {
-#   tmaxi <- listRaster_Tmax[i]
-#   sameYear_pointdata(rastLayer=tmaxi, gpsdata = ground, pl_j=pl_j, hv_j=hv_j, varName = "Tmax")
-# }
-# tmax_points <- do.call(rbind, tmax_result)
-# 
-# 
-# tmin_result <- foreach(i=1:(length(listRaster_Tmin)-1), .packages = c('terra', 'plyr', 'stringr','tidyr')) %dopar% {
-#   timni <- listRaster_Tmin[i]
-#   sameYear_pointdata(rastLayer=timni, gpsdata = ground, pl_j=pl_j, hv_j=hv_j, varName = "Tmin")
-# }
-# tmin_result <- do.call(rbind, tmin_result)
-# 
-
-
-
-# ## TMax
-# tmax_result2 <- foreach(i = 1:(length(listRaster_Tmax)-1), .packages = c('terra', 'plyr', 'stringr','tidyr')) %dopar% {
-#   listRaster_Tmax <- listRaster_Tmax[order(listRaster_Tmax)]
-#   tmax1 <- listRaster_Tmax[i]
-#   tmax2 <- listRaster_Tmax[i+1]
-#   diffYear_pointdata(raster1=tmax1, raster2=tmax2, gpsdata=ground, pl_j=pl_j, hv_j=hv_j, varName = "Tmax")
-# }
-# Tmax_points <- do.call(rbind, tmax_result2)
-# 
-# 
-# ## TMin
-# tmin_result2 <- foreach(i = 1:(length(listRaster_Tmin)-1), .packages = c('terra', 'plyr', 'stringr','tidyr')) %dopar% {
-#   listRaster_Tmin <- listRaster_Tmin[order(listRaster_Tmin)]
-#   tmin1 <- listRaster_Tmin[i]
-#   tmin2 <- listRaster_Tmin[i+1]
-#   diffYear_pointdata(raster1=tmin1, raster2=tmin2, gpsdata=ground, pl_j=pl_j, hv_j=hv_j, varName = "Tmin")
-# }
-# Tmin_points <- do.call(rbind, tmin_result2)
-
-
-
-
-# rainfall_points <- rbind(rainfall_points, rainfall_points_i)
-# Tmin_points <- rbind(Tmin_points, Tmin_points_i)
-# Tmax_points <- rbind(Tmax_points, Tmax_points_i)
-# 
-# rainfall_points <- cbind(rainfall_points, xy)
-# Tmin_points <- cbind(Tmin_points, xy)
-# Tmax_points <- cbind(Tmax_points, xy)
-# 
-# rainfall_points$Year <- yearPi
-# Tmin_points$Year <- yearPi
-# Tmax_points$Year <- yearPi
-
-
-# # Compute the average max temp
-# groundi$AvTmax <- as.numeric(mean(as.numeric(Tmax_points_i[c(2:length(Tmax_points_i))])))
-#  
-# 
-# # Compute the average min temp
-# groundi$AvTmin <- as.numeric(mean(as.numeric(Tmin_points_i[c(2:length(Tmin_points_i))])))
-# 
-
-
-# fname_Tmax <- ifelse(AOI == "TRUE", paste(season, "Tmax_daily_AOI.RDS",sep="_"), paste(season, "Tmax_daily.RDS", sep="_"))
-# fname_Tmin <- ifelse(AOI == "TRUE", paste(season, "Tmin_daily_AOI.RDS",sep="_"), paste(season, "Tmin_daily.RDS", sep="_"))
-
-
-# saveRDS(object = Tmin_points, file=paste(pathOut1, fname_Tmax, sep="/"))
-# saveRDS(object = Tmax_points, file=paste(pathOut1, fname_Tmin, sep="/"))
-
-
-# saveRDS(object = Tmin_points, file=paste(pathOut2, fname_Tmax, sep="/"))
-# saveRDS(object = Tmax_points, file=paste(pathOut2, fname_Tmin, sep="/"))
 
 
