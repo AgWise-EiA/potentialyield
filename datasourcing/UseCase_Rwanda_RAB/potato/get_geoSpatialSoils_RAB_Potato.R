@@ -3,7 +3,7 @@
 #################################################################################################################
 ## source "get_geo-SpatialSoils.R" function and execute it for Rwanda RAB use case
 #################################################################################################################
-source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialSoils.R")
+source("~/agwise-datasourcing/dataops/datasourcing/get_geoSpatialSoils.R")
 
 crop_geoSpatial_soiliSDA(country = "Rwanda", useCaseName = "Rwanda_RAB", Crop = "Potato", overwrite = TRUE)
 crop_geoSpatial_soilGrids(country = "Rwanda", useCaseName = "Rwanda_RAB", Crop = "Potato", overwrite = TRUE)
