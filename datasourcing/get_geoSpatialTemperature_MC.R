@@ -28,10 +28,6 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #' @examples get_geoSpatial_soiliSDA(country = "Rwanda", useCaseName = "RAB", Crop = "Potato", dataSource = "chirts", overwrite = TRUE)
 crop_geoSpatial_temp <- function(country, useCaseName, Crop, dataSource, overwrite){
   
-  #TODO create a look up table to check use case - country names
-  ## get country abbreviation to used in gdam function
-  countryCC <- countrycode(country, origin = 'country.name', destination = 'iso3c')
-  
   ## create a directory to store the cropped data: 
   if(dataSource == "chirts"){
     pathOut <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Temperature/chirts", sep="")
@@ -52,7 +48,7 @@ crop_geoSpatial_temp <- function(country, useCaseName, Crop, dataSource, overwri
   }
   
   ## read the relevant shape file from gdam to be used to crop the global data
-  countryShp <- geodata::gadm(countryCC, level = 3, path='.')
+  countryShp <- geodata::gadm(country, level = 3, path='.')
   
   ## crop the layers 
   croppedLayer_tmax <- terra::crop(readLayers_tmax, countryShp)
@@ -60,7 +56,7 @@ crop_geoSpatial_temp <- function(country, useCaseName, Crop, dataSource, overwri
    ## save result
   terra::writeRaster(croppedLayer_tmax, paste(pathOut, fileName , sep="/"), filetype="GTiff", overwrite = overwrite)
   
-  return(croppedLayer_rf)
+  return(croppedLayer_tmax)
 }
 
 
@@ -79,7 +75,7 @@ crop_geoSpatial_temp <- function(country, useCaseName, Crop, dataSource, overwri
 #' @return  a data frame with total TemperatureMax, number of rainy days and monthly temperature
 #' @example sameYear_pointdata(rastLayer="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/TemperatureMax/chirts/1981.nc",
                    #' gpsdata=data.frame(longitude = c(29.375, 30.125), latitude = c(-2.825, -2.425)),  pl_j=35, hv_j=128)
-summary_pointdata_temp <- function(rastLayer1= NULL, rastLayer2=NULL, gpsdata, pl_j, hv_j, planting_harvest_sameYear){
+summary_pointdata_temp <- function(rastLayer1= NULL, rastLayer2=NULL, gpsdata, pl_j, hv_j, planting_harvest_sameYear, varName){
   if(planting_harvest_sameYear == TRUE){
     PlHvD <- terra::rast(rastLayer1, lyrs=c(pl_j:hv_j))
   }else{
@@ -91,14 +87,16 @@ summary_pointdata_temp <- function(rastLayer1= NULL, rastLayer2=NULL, gpsdata, p
     xy <- gpsdata[, c("longitude", "latitude")]
     tempi <- terra::extract(PlHvD, xy, method='simple', cells=FALSE)
     tempi <- tempi[,-1]
-    
+    tempi <- tempi-274
     # Compute the total  and monthly average temp 
 
-      tmxiq <- t(tempi[c(1:length(tempi))])
-      xy$AvTemp <- NULL
-      for(m in 1:nrow(xy)){
+      # tmxiq <- t(tempi[c(1:length(tempi))])
+      gpsdata$AvTemp <- NULL
+      
+      for(m in 1:nrow(gpsdata)){
         gdata <- tempi[m, ]
-        xy$AvTemp[m] <- as.numeric(mean(as.numeric(gdata)))
+        
+        gpsdata$AvTemp[m] <- as.numeric(mean(as.numeric(gdata)))
         mdiv <- unique(c(seq(1, length(gdata), 30), length(gdata)))
         
         mrf <- c()
@@ -115,27 +113,42 @@ summary_pointdata_temp <- function(rastLayer1= NULL, rastLayer2=NULL, gpsdata, p
           mrf <- c(mrf, rep("NA", 6 - length(mrf)))
         }
         
-        mrf_names <- c(paste0("monthlyTemp_", c(1:6)))
+        if(varName == "Tmax"){
+          mrf_names <- c(paste0("Tmax_month", c(1:6)))
+        }else if(varName == "Tmin"){
+          mrf_names <- c(paste0("Tmin_month", c(1:6)))
+        }
+        
+       
         for (h in 1:length(mrf_names)) {
           colname <- mrf_names[h]
-          xy[[colname]][m] <- mrf[h]
+          gpsdata[[colname]][m] <- mrf[h]
         }
         
       } 
 
       if(planting_harvest_sameYear == TRUE){
-        xy$plantingYear <- str_extract(rastLayer1, "[[:digit:]]+")
-        xy$harvestYear <-  xy$plantingYear
+        gpsdata$plantingYear <- str_extract(rastLayer1, "[[:digit:]]+")
+        gpsdata$harvestYear <-  gpsdata$plantingYear
       }else{
-        xy$plantingYear <- str_extract(rastLayer1, "[[:digit:]]+")
-        xy$harvestYear <-  str_extract(rastLayer2, "[[:digit:]]+")
+        gpsdata$plantingYear <- str_extract(rastLayer1, "[[:digit:]]+")
+        gpsdata$harvestYear <-  str_extract(rastLayer2, "[[:digit:]]+")
       }
       
-   
+      
+    
+      if(varName == "Tmax"){
+        gpsdata$Tmax_mean <- gpsdata$AvTemp
+      }else if(varName == "Tmin"){
+        gpsdata$Tmin_mean <- gpsdata$AvTemp
+      }
+      
+      gpsdata <- subset(gpsdata, select = -c(AvTemp))
+        
     # names(tmxi) <- paste(varName, sub("^[^_]+", "", names(tmxi)), sep="")
     # tmxi$Year <- str_extract(rastLayer, "[[:digit:]]+")
     # tmxi <- cbind(tmxi, xy)
-     return(xy)
+     return(gpsdata)
 }
 
 
@@ -171,10 +184,10 @@ summary_pointdata_temp <- function(rastLayer1= NULL, rastLayer2=NULL, gpsdata, p
 #'        tmax : Average tmax temperature between pl_Date and hv_Date
 #'        monthlyRF_x: total monthly TemperatureMax 
 #' @examples: get_temp_pointSummarydata(country = "Rwanda";  useCaseName = "RAB"; Crop = "Potato"; AOI = FALSE; overwrite = TRUE;
-#' season="season1";Planting_month_date = "07-01";  Harvest_month_date = "11-30"; jobs=10, varName = "Tmax")
+#' season="season1";Planting_month_date = "07-01";  Harvest_month_date = "11-30"; jobs=10, varName = "Tmax", ID = "TLID")
 get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
                                          Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                                         jobs = 10, season=NULL, dataSource, varName){
+                                         jobs = 10, season=NULL, dataSource, varName, ID){
   
   
  
@@ -189,7 +202,7 @@ get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, o
     listRaster_temp <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/TemperatureMin/AgEra", pattern=".nc$", full.names = TRUE)
   }
   
-  pathOut1 <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/feature/Temperature", sep="")
+  pathOut1 <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/result/Temperature", sep="")
   pathOut2 <- paste("/home/jovyan/agwise/AgWise_Data/potential_yield/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Temperature", sep="")
   pathOut3 <- paste("/home/jovyan/agwise/AgWise_Data/response_functions/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Temperature", sep="")
   
@@ -229,23 +242,29 @@ get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, o
       countryCoord$plantingDate <- paste(2001, Planting_month_date, sep="-")
       countryCoord$harvestDate <- paste(2002, Harvest_month_date, sep="-")
     }
-    
+    countryCoord <- countryCoord[complete.cases(countryCoord),]
+    ground <- countryCoord[, c("longitude", "latitude", "plantingDate", "harvestDate")]
   }else{
     GPS_fieldData <- readRDS(paste("~/agwise/AgWise_Data/fieldData_analytics/UseCase_",country, "_",useCaseName, "/", Crop, "/result/compiled_fieldData.RDS", sep=""))  
-    countryCoord <- unique(GPS_fieldData[, c("lon", "lat", "plantingDate", "harvestDate")])
+    countryCoord <- unique(GPS_fieldData[, c("lon", "lat", "plantingDate", "harvestDate",ID)])
     countryCoord <- countryCoord[complete.cases(countryCoord), ]
-    names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate")
+    names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate",ID)
+    countryCoord <- countryCoord[complete.cases(countryCoord),]
+    ground <- countryCoord
   }
   
   
   
   # 2. the ground data ####
-  ground <- countryCoord[, c("longitude", "latitude", "plantingDate", "harvestDate")]
-  ground <- ground[complete.cases(ground),]
+
   
   ground$Planting <- as.Date(ground$plantingDate, "%Y-%m-%d") # Planting date in Date format
   ground$Harvesting <- as.Date(ground$harvestDate, "%Y-%m-%d") # Harvesting date in Date format
   
+  countryShp <- geodata::gadm(country, level = 3, path='.')
+  dd2 <- raster::extract(countryShp, ground[, c("longitude", "latitude")])[, c("NAME_1", "NAME_2")]
+  ground$NAME_1 <- dd2$NAME_1
+  ground$NAME_2 <- dd2$NAME_2
   
   if(AOI == TRUE){
     
@@ -259,12 +278,13 @@ get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, o
       doParallel::registerDoParallel(cls)
       
       ### 3.1.2 Read for the corresponding year and date
-      tmax_result <- foreach(i=1:length(listRaster_temp), .packages = c('terra', 'plyr', 'stringr','tidyr')) %dopar% {
+      t_result <- foreach(i=1:length(listRaster_temp), .packages = c('terra', 'plyr', 'stringr','tidyr')) %dopar% {
         rast1 <- listRaster_temp[i]
         source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialTemperature_MC.R", local = TRUE)
-        summary_pointdata_temp(rastLayer1=rast1, rastLayer2=NULL, gpsdata = ground, pl_j=pl_j, hv_j=hv_j, planting_harvest_sameYear = TRUE)
+        summary_pointdata_temp(rastLayer1=rast1, rastLayer2=NULL, gpsdata = ground, pl_j=pl_j, hv_j=hv_j, 
+                               planting_harvest_sameYear = TRUE, varName = varName)
       }
-      Temperature_points <- do.call(rbind, tmax_result)
+      Temperature_points <- do.call(rbind, t_result)
       
       stopCluster(cls)
     }
@@ -274,14 +294,15 @@ get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, o
       doParallel::registerDoParallel(cls)
       
       ## TemperatureMax
-      rf_result2 <- foreach(i = 1:(length(listRaster_temp)-1), .packages = c('terra', 'plyr', 'stringr','tidyr')) %dopar% {
+      t_result2 <- foreach(i = 1:(length(listRaster_temp)-1), .packages = c('terra', 'plyr', 'stringr','tidyr')) %dopar% {
         listRaster_temp <- listRaster_temp[order(listRaster_temp)]
         source("~/agwise/AgWise_Scripts/data_sourcing/get_rain_temp_summary.R", local = TRUE)
         rast1 <- listRaster_temp[i]
         rast2 <- listRaster_temp[i+1]
-        summary_pointdata_temp(rastLayer1=rast1, rastLayer2=rast2, gpsdata = ground, pl_j=pl_j, hv_j=hv_j, planting_harvest_sameYear = TRUE)
+        summary_pointdata_temp(rastLayer1=rast1, rastLayer2=rast2, gpsdata = ground, pl_j=pl_j, hv_j=hv_j, 
+                               planting_harvest_sameYear = TRUE, varName = varName)
       }
-      Temperature_points <- do.call(rbind, rf_result2)
+      Temperature_points <- do.call(rbind, t_result2)
       
       stopCluster(cls)
       
@@ -332,12 +353,17 @@ get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, o
       
       Temperature_points_i <- terra::extract(tempi, xy,method='simple', cells=FALSE)
       Temperature_points_i <- Temperature_points_i[, -1]
-      
+      Temperature_points_i <- Temperature_points_i - 274
       ## get year
       groundi$Year <- yearPi
       
-      # Compute the total amount of TemperatureMax
-      groundi$AvTemp <- round(mean(as.numeric(Temperature_points_i[c(1:length(Temperature_points_i))])), digits=1)
+      # Compute the total amount of Temperature
+      if(varName == "Tmax"){
+        groundi$Tmax_mean <- round(mean(as.numeric(Temperature_points_i[c(1:length(Temperature_points_i))])), digits=1)
+      }else if(varName == "Tmin"){
+        groundi$Tmin_mean <- round(mean(as.numeric(Temperature_points_i[c(1:length(Temperature_points_i))])), digits=1)
+      }
+      
       
     # Compute monthly Temperature, at 31 days interval and the remaining  days at the end
      mdiv <- unique(c(seq(1, length(Temperature_points_i), 30), length(Temperature_points_i)))
@@ -355,7 +381,12 @@ get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, o
         mrf <- c(mrf, rep("NA", 6 -length(mrf)))
       }
       
-      mrf_names <- c(paste0("monthlyTemp_", c(1:6)))
+      if(varName == "Tmax"){
+        mrf_names <- c(paste0("Tmax_month", c(1:6)))
+      }else if(varName == "Tmin"){
+        mrf_names <- c(paste0("Tmin_month", c(1:6)))
+      }
+      
       for (h in 1:length(mrf_names)) {
         colname <- mrf_names[h]
         groundi[[colname]] <- mrf[h]
@@ -409,6 +440,7 @@ get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, o
 #' @param season used to formulate a file name and is useful when data for different seasons is needed 
 #' @param dataSource is one of c("chirts", "AgEra")
 #' @param varName is used to rename the column names it assumes one the following values c("Tmax", "Tmin")
+#' @param ID only when AOI  = FALSE, it is the column name Identifying the trial ID in compiled_fieldData.RDS
 #' 
 #' @return a data frame with file name made to reflect point/summary, AOI/trial, season, planting as mm_dd and source chirts/AgEra
 #' the data frame contains daily TemperatureMax for every GPS point. 
@@ -422,7 +454,7 @@ get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, o
 #'             jobs=10, season="season_1", dataSource = "AgEra", varName = "Tmax")
 get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
                                Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                               jobs = 10, season="season_1", dataSource, varName = NULL){
+                               jobs = 10, season="season_1", dataSource, varName = NULL, ID = NULL){
   
   if(dataSource == "chirts" & varName == "Tmax"){
     listRaster_temp <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/TemperatureMax/chirts", pattern=".nc$", full.names = TRUE)
@@ -434,7 +466,7 @@ get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrit
     listRaster_temp <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/TemperatureMin/AgEra", pattern=".nc$", full.names = TRUE)
   }
   
-  pathOut1 <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/feature/Temperature", sep="")
+  pathOut1 <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/result/Temperature", sep="")
   pathOut2 <- paste("/home/jovyan/agwise/AgWise_Data/potential_yield/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Temperature", sep="")
   pathOut3 <- paste("/home/jovyan/agwise/AgWise_Data/response_functions/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Temperature", sep="")
   
@@ -475,21 +507,27 @@ get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrit
       countryCoord$harvestDate <- paste(2002, Harvest_month_date, sep="-")
     }
     
+    countryCoord <- countryCoord[complete.cases(countryCoord),]
+    ground <- countryCoord
+    
   }else{
     GPS_fieldData <- readRDS(paste("~/agwise/AgWise_Data/fieldData_analytics/UseCase_",country, "_",useCaseName, "/", Crop, "/result/compiled_fieldData.RDS", sep=""))  
-    countryCoord <- unique(GPS_fieldData[, c("lon", "lat", "plantingDate", "harvestDate")])
+    countryCoord <- unique(GPS_fieldData[, c("lon", "lat", "plantingDate", "harvestDate", ID)])
     countryCoord <- countryCoord[complete.cases(countryCoord), ]
-    names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate")
+    names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate", ID)
+    countryCoord <- countryCoord[complete.cases(countryCoord),]
+    ground <- countryCoord
+  
   }
   
   
-  
   # 2. the ground data ####
-  ground <- countryCoord[, c("longitude", "latitude", "plantingDate", "harvestDate")]
-  ground <- ground[complete.cases(ground),]
-  
   ground$Planting <- as.Date(ground$plantingDate, "%Y-%m-%d") # Planting date in Date format
   ground$Harvesting <- as.Date(ground$harvestDate, "%Y-%m-%d") # Harvesting date in Date format
+  countryShp <- geodata::gadm(country, level = 3, path='.')
+  dd2 <- raster::extract(countryShp, ground[, c("longitude", "latitude")])[, c("NAME_1", "NAME_2")]
+  ground$NAME_1 <- dd2$NAME_1
+  ground$NAME_2 <- dd2$NAME_2
   
   
   if(AOI == TRUE){
@@ -510,10 +548,11 @@ get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrit
         xy <- ground[, c("longitude", "latitude")]
         tempi <- terra::extract(PlHvD, xy, method='simple', cells=FALSE)
         tempi <- tempi[,-1]
+        tempi <- tempi-274
         names(tempi) <- paste("Temp", sub("^[^_]+", "", names(tempi)), sep="")
         tempi$plantingYear <-  str_extract(rasti, "[[:digit:]]+")
         tempi$harvestYear <- str_extract(rasti, "[[:digit:]]+")
-        xy <- cbind(xy, tempi)
+        ground2 <- cbind(ground, tempi)
       }
       Temperature_points <- do.call(rbind, temp_result)
       
@@ -535,7 +574,7 @@ get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrit
         xy <- ground[, c("longitude", "latitude")]
         tempi <- terra::extract(PlHvD, xy, method='simple', cells=FALSE)
         tempi <- tempi[,-1]
-        
+        tempi <- tempi-274
         names(tempi) <- sub("^[^_]+", "", names(tempi))
         if(length(grep("_366", names(tempi))) > 0){
           tempi <- tempi[,-grep("_366", names(tempi))]
@@ -543,7 +582,7 @@ get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrit
         names(tempi) <- paste("Temp", names(tempi), sep="")
         tempi$plantingYear <- str_extract(rast1, "[[:digit:]]+")
         tempi$harvestYear <- str_extract(rast2, "[[:digit:]]+")
-        tempi <- cbind(tempi, xy)
+        ground2 <- cbind(ground, tempi)
       }
       
       Temperature_points <- do.call(rbind, temp_result2)
@@ -578,7 +617,8 @@ get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrit
     for(i in 1:nrow(ground)){
       print(i)
       # Extract the information for the i-th row
-      groundi <- ground[i, c("longitude", "latitude", "plantingDate", "harvestDate","yearPi", "yearHi", "pl_j", "hv_j", "growinglength")]
+      # groundi <- ground[i, c("longitude", "latitude", "plantingDate", "harvestDate","yearPi", "yearHi", "pl_j", "hv_j", "growinglength")]
+      groundi <- ground[i, c("longitude", "latitude", "plantingDate", "harvestDate",ID,"NAME_1", "NAME_2","yearPi", "yearHi", "pl_j", "hv_j", "growinglength")]
       
       # Test if the cropping season overlaps two civil year
       yearPi <- groundi$yearPi
@@ -614,6 +654,7 @@ get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrit
       names(tempi) <- sub("^[^_]+", "", names(tempi))
       names(tempi) <- paste("Temp", names(tempi), sep="")
       tempi <- as.data.frame(t(tempi))
+      tempi$V1 <- tempi$V1 - 274
       tempi$V2 <- rownames(tempi)
       rownames(tempi) <- NULL
       
@@ -642,5 +683,226 @@ get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrit
   
 }
 
+
+
+
+
+#################################################################################################################
+#################################################################################################################
+# 6. Extract the seasonal temperature on raster data -------------------------------------------
+#' @description this functions loops through all .nc files (~30 -40 years) for temperature to provide raster based seasonal temperature.
+#' @details for AOI it requires a "AOI_GPS.RDS" data frame with c("longitude","latitude") columns being saved in 
+#'                            paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw", sep="") 
+#'          
+#' @param country country name
+#' @param useCaseName use case name  name
+#' @param Crop the name of the crop to be used in creating file name to write out the result.
+#' @param AOI True if the data is required for target area, and false if it is for the entire country
+#' @param overwrite default is FALSE 
+#' @param Planting_month_date should be provided as month_date
+#' @param Harvest_month_date should be provided as month_date
+#' @param jobs defines how many cores to use for parallel data sourcing
+#' @param season used to formulate a file name and is useful when data for different seasons is needed 
+#' @param dataSource is among c("chirst", "AgEra")
+#' 
+#' @return a raster layer corresponding to the temperature (Min and Max) for each year + if scenario = TRUE, the corresponding 3 scenarios (below, average, above) #' 
+#'        tmin : Average tmin temperature between pl_Date and hv_Date 
+#'        tmax : Average tmax temperature between pl_Date and hv_Date
+#
+#' @examples: get_tp_rasterSummarydata(country = "Rwanda";  useCaseName = "RAB"; Crop = "Potato"; AOI = FALSE; overwrite = TRUE;
+#' season="season1";Planting_month_date = "07-01";  Harvest_month_date = "11-30";jobs=10, dataSource = "AgEra", scenario=TRUE)
+get_tp_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
+                                     Planting_month_date = "02-01", Harvest_month_date = "05-30", 
+                                     jobs = 10, season="season_1", dataSource, scenario=TRUE) {
+  
+  # 6.1. Initialization of input and output data ####
+  
+  # Input Temperature
+  if(dataSource == "AgEra"){
+    listRaster_AgERAmax <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/TemperatureMax/AgEra", pattern=".nc$", full.names = TRUE)
+    listRaster_AgERAmin <- list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/TemperatureMin/AgEra", pattern=".nc$", full.names = TRUE)
+    listYear_AgERA <- seq(1979, (1979+length(listRaster_AgERAmax))-1)
+  }else{
+    listRaster_AgERAmax <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/TemperatureMax/chirts", pattern=".nc$", full.names = TRUE)
+    listRaster_AgERAmin <- list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/TemperatureMin/chirts", pattern=".nc$", full.names = TRUE)
+    listYear_AgERA <- seq(1983, (1983+length(listRaster_AgERAmax))-1)
+  }
+  
+  # Creation of the output dir
+  pathOut1 <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/result/Temperature", sep="")
+  
+  if (!dir.exists(pathOut1)){
+    dir.create(file.path(pathOut1), recursive = TRUE)
+  }
+  
+  # Input Extent
+  if (AOI == FALSE){
+    # Case AOI = False
+    #read the relevant shape file from gdam to be used to crop the global data
+    countryShp <- geodata::gadm(country, level = 3, path='.')
+    countryShp <- sf::st_as_sf(countryShp)
+  } else {
+    # Case AOI = True
+    countryCoord <- readRDS(paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/AOI_GPS.RDS", sep=""))
+    countryCoord <- unique(countryCoord[, c("longitude", "latitude")])
+    countryCoord <- countryCoord[complete.cases(countryCoord), ]
+    # get the extent and create a bounding box based on the extent
+    x <- list(x=countryCoord$longitude, y=countryCoord$latitude)
+    countryShp <- as(raster::extent (x), "SpatialPolygons")
+    terra::crs(countryShp) <- "+proj=longlat +datum=WGS84"
+    
+  }
+  
+  # Check if both planting and harvest dates are in the same year
+  Planting_month <- as.numeric(str_extract(Planting_month_date, "[^-]+"))
+  harvest_month <- as.numeric(str_extract(Harvest_month_date, "[^-]+"))
+  if(Planting_month < harvest_month){
+    planting_harvest_sameYear <- TRUE
+  }else{
+    planting_harvest_sameYear <- FALSE
+  }
+  
+  # Convert planting date and harvest date in Julian Day 
+  pl_Date<-as.Date(paste0("1981-",Planting_month_date), "%Y-%m-%d")
+  pl_Date<-as.POSIXlt(pl_Date)$yday
+  
+  hv_Date <-as.Date(paste0("1981-",Harvest_month_date), "%Y-%m-%d")
+  hv_Date<-as.POSIXlt(hv_Date)$yday
+  
+  # 6.2. Compute the seasonal rainfall parameters for the extent (countryShp) ####
+  ## 6.2.1. Case planting and harvesting dates span the same year ####
+  if (planting_harvest_sameYear ==  TRUE) {
+    
+    cls <- makeCluster(jobs)
+    doParallel::registerDoParallel(cls)
+    
+    # Loop over all the years 
+    foreach(i=1:length(listRaster_AgERAmax), .packages = c('terra', 'plyr', 'stringr','tidyr'), .export='.GlobalEnv') %dopar% {
+      
+
+      # Read raster
+      readLayersMax <- terra::rast(listRaster_AgERAmax[i], lyrs=c(pl_Date:hv_Date))
+      readLayersMin <- terra::rast(listRaster_AgERAmin[i], lyrs=c(pl_Date:hv_Date))
+      
+      # Crop the raster !!!!! This should be remove and done by Eduardo
+      croppedLayersMax <- terra::crop(readLayersMax, countryShp)
+      croppedLayersMin <- terra::crop(readLayersMin, countryShp)
+      
+      # Compute the total amount of rainfall
+      tmax <- terra::app(croppedLayersMax, fun='mean')
+      tmin <- terra::app(croppedLayersMin, fun='mean')
+      
+      # write ouput for the year i
+      tp_summary <- c(tmax, tmin)
+      names(tp_summary) <- c("tmax", "tmin")
+      
+      Planting_month_date2 <- gsub("-", "_", Planting_month_date)
+      fname_temp <- ifelse(AOI == "TRUE", paste("Temperature_Raster_summaries_AOI_", season,"_" ,Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i], ".tif",sep=""), paste("Temperature_Raster_summaries_Country_", season,"_" ,Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i],".tif", sep=""))
+      terra::writeRaster(tp_summary, paste(pathOut1, fname_temp, sep="/"), filetype="GTiff", overwrite=overwrite)
+      
+    }
+    stopCluster(cls)
+  }
+  
+  ## 6.2.2. Case planting and harvesting dates span two different year ####
+  if (planting_harvest_sameYear ==  FALSE) {
+    
+    cls <- makeCluster(jobs)
+    doParallel::registerDoParallel(cls)
+    
+    # Loop over all the years 
+    foreach(i=1:length(listRaster_AgERAmax), .packages = c('terra', 'plyr', 'stringr','tidyr'), .export='.GlobalEnv') %dopar% {
+      
+      
+      # Read raster
+      readLayersMax1 <- terra::rast(listRaster_AgERAmax[i], lyrs=c(pl_Date:terra::nlyr(terra::rast(listRaster_AgERAmax[i]))))
+      readLayersMax2 <- terra::rast(listRaster_AgERAmax[i+1], lyrs=c(1:hv_Date))
+      readLayersMax <- c(readLayersMax1, readLayersMax2)
+      
+      readLayersMin1 <- terra::rast(listRaster_AgERAMin[i], lyrs=c(pl_Date:terra::nlyr(terra::rast(listRaster_AgERAMin[i]))))
+      readLayersMin2 <- terra::rast(listRaster_AgERAMin[i+1], lyrs=c(1:hv_Date))
+      readLayersMin <- c(readLayersMin1, readLayersMin2)
+      
+      # Crop the raster !!!!! This should be remove and done by Eduardo
+      croppedLayersMax <- terra::crop(readLayersMax, countryShp)
+      croppedLayersMin <- terra::crop(readLayersMin, countryShp)
+      
+      # Compute the total amount of rainfall
+      tmax <- terra::app(croppedLayersMax, fun='mean')
+      tmin <- terra::app(croppedLayersMin, fun='mean')
+      
+      # write ouput for the year i
+      tp_summary <- c(tmax, tmin)
+      names(tp_summary) <- c("tmax", "tmin")
+      
+      Planting_month_date2 <- gsub("-", "_", Planting_month_date)
+      fname_temp <- ifelse(AOI == "TRUE", paste("Temperature_Raster_summaries_AOI_", season,"_" ,Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i], ".tif",sep=""), paste("Temperature_Raster_summaries_Country_", season,"_" ,Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i],".tif", sep=""))
+      terra::writeRaster(tp_summary, paste(pathOut1, fname_temp, sep="/"), filetype="GTiff", overwrite=overwrite)
+      
+    }
+    stopCluster(cls)
+  }
+  
+  # 6.3. Compute the scenario (below, average, above) of each temperature parameters ####
+  
+  # Define the list of summary rasters to use to compute the scenario
+  if (AOI == FALSE & scenario == TRUE){
+    listRaster_summary <- list.files(path=pathOut1, pattern=paste("Temperature_Raster_summaries_Country_", season,"_" ,Planting_month_date2, "_", dataSource, sep=""), full.names=T)
+  }
+  if (AOI == TRUE & scenario == TRUE) {
+    listRaster_summary <- list.files(path=pathOut1, pattern=paste("Temperature_Raster_summaries_AOI_", season,"_" ,Planting_month_date2, "_", dataSource, sep=""), full.names=T)
+  }
+  
+  ## 6.3.1. Loop on all temperature paramaters ####
+  # Define the number of parameters
+  n <- terra::nlyr(terra::rast(listRaster_summary[1]))
+  
+  # Loop
+  for (j in 1:n) {
+    
+    # Open the parameters j for all the years
+    listRaster_summaryj <- lapply(listRaster_summary, terra::rast, lyrs=j)
+    listRaster_summaryj <- terra::rast(listRaster_summaryj)
+    
+    # Compute the quantiles
+    q <- quantile(listRaster_summaryj, probs=c(0.25,0.5, 0.75))
+    
+    # Set-up of the output file
+    if (j == 1){
+      
+      namej <- unique(names(listRaster_summaryj))
+      below <- q[[1]]
+      names(below) <- namej
+      average <- q[[2]]
+      names(average) <- namej
+      above <- q[[3]]
+      names(above) <- namej
+      
+    } else {
+      namej <- unique(names(listRaster_summaryj))
+      below1 <- q[[1]]
+      names(below1) <- namej
+      below <- c(below, below1)
+      average1 <- q[[2]]
+      names(average1) <- namej
+      average <- c(average,average1)
+      above1 <- q[[3]]
+      names(above1) <- namej
+      above <- c(above,above1)
+    }
+    
+  }
+  
+  ## 6.3.2. Write the output
+  fname_scenario <- ifelse(AOI == "TRUE", paste("Temperature_Raster_scenario_AOI_", season,"_" ,Planting_month_date2, "_", dataSource, ".tif",sep=""), paste("Temperature_Raster_scenario_Country_", season,"_" ,Planting_month_date2, "_", dataSource,".tif", sep=""))
+  
+  # Below
+  terra::writeRaster(below, paste(pathOut1, paste0("Below_",fname_scenario), sep="/"), filetype="GTiff", overwrite=overwrite)
+  # Average
+  terra::writeRaster(average, paste(pathOut1, paste0("Average_",fname_scenario), sep="/"), filetype="GTiff", overwrite=overwrite)
+  # Above
+  terra::writeRaster(above, paste(pathOut1, paste0("Above_",fname_scenario), sep="/"), filetype="GTiff", overwrite=overwrite)
+  
+}
 
 

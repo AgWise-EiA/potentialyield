@@ -20,93 +20,52 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #################################################################################################################
 #' iSDA layers are aggregated at 1km res and are obtained using geodata; for info on variables and units refer to
 #' https://rdrr.io/github/rspatial/geodata/man/soil_af_isda.html
-#'
-#' @param country country name
-#' @param useCaseName use case name  name
-#' @param Crop the name of the crop to be used in creating file name to write out the result.
-#' @param overwrite default is FALSE 
-#'
-#' @return raster files cropped from global data and the result will be written out in useCaseName/Crop/raw/soil/iSDA
-#'
-#' @examples get_geoSpatial_soiliSDA(country = "Rwanda", useCaseName = "Rwanda_RAB", Crop = "Potato", overwrite = TRUE)
-
-crop_geoSpatial_soiliSDA <- function(country, useCaseName, Crop, overwrite){
-  
-  #TODO create a look up table to check use case - country names
-  ## get country abbreviation to used in gdam function
-  countryCC <- countrycode(country, origin = 'country.name', destination = 'iso3c')
-  
-  ## create a directory to store the cropped data: 
-  pathOut <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", useCaseName, "/", Crop, "/raw/Soil/iSDA", sep="")
-  
-  if (!dir.exists(pathOut)){
-    dir.create(file.path(pathOut), recursive = TRUE)
-  }
-  
-  ## read the relevant shape file from gdam to be used to crop the global data
-  countryShp <- geodata::gadm(countryCC, level = 3, path='.')
-  
-  ## read soil layers and crop
-  listRaster_iSDA <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Soil/iSDA", pattern=".tif$")
-  
-  readLayers_iSDA <- terra::rast(paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Soil/iSDA", listRaster_iSDA, sep="/"))
- 
-  croppedLayer_iSDA <- terra::crop(readLayers_iSDA, countryShp)
- 
-  ## save result
-  terra::writeRaster(croppedLayer_iSDA, paste0(pathOut, "/iSDA_geospatial_soils.tif", sep=""), filetype="GTiff", overwrite = overwrite)
- 
-  return(croppedLayer_iSDA)
-}
-
-
-
-
-
-#################################################################################################################
-## functions to read from "Global_GeoData/Landing/", crop and write the result in "useCaseName/Crop/raw"
-#################################################################################################################
 #' soilGrids layers are aggregated at 1km res and are obtained from geodata; for info on variables and units refer to
 #' https://rdrr.io/github/rspatial/geodata/man/soil_af_elements.html
 #'
 #' @param country country name
 #' @param useCaseName use case name  name
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
+#' @param dataSource is one of c("iSDA", "soilGrids")
 #' @param overwrite default is FALSE 
 #'
-#' @return raster files cropped from global data and the result will be written out in useCaseName/Crop/raw/Soil/soilGrids
+#' @return raster files cropped from global data and the result will be written out in useCaseName/Crop/raw/soil/iSDA
 #'
-#' @examples get_geoSpatial_soilGrids(country = "Rwanda", useCaseName = "Rwanda_RAB", Crop = "Potato", overwrite = TRUE)
-crop_geoSpatial_soilGrids <- function(country, useCaseName, Crop, overwrite){
+#' @examples crop_geoSpatial_soil(country = "Rwanda", useCaseName = "RAB", Crop = "Potato", overwrite = TRUE)
+
+crop_geoSpatial_soil <- function(country, useCaseName, Crop, dataSource, overwrite){
   
-  ## get country abbreviation to used in gdam function
-  countryCC <- countrycode(country, origin = 'country.name', destination = 'iso3c')
   
   ## create a directory to store the cropped data: 
-  pathOut <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", useCaseName, "/", Crop, "/raw/Soil/soilGrids", sep="")
   
+  pathOut <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Soil", sep="")
   if (!dir.exists(pathOut)){
     dir.create(file.path(pathOut), recursive = TRUE)
   }
-
+  
+  ## read soil gloabl data
+  if(dataSource == "iSDA"){
+    listRaster_soil <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Soil/iSDA", pattern=".tif$")
+    readLayers_soil <- terra::rast(paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Soil/iSDA", listRaster_soil, sep="/"))
+    
+  }else{
+    listRaster_soil <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Soil/soilGrids", pattern=".tif$")
+    readLayers_soil <- terra::rast(paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Soil/soilGrids", listRaster_soil, sep="/"))
+  }
+  
   ## read the relevant shape file from gdam to be used to crop the global data
-  countryShp <- geodata::gadm(countryCC, level = 3, path='.')
+  countryShp <- geodata::gadm(country, level = 3, path='.')
   
   ## read soil layers and crop
-   listRaster_soilGrids <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Soil/soilGrids", pattern=".tif$")
   
-   readLayers_soilGrids <- terra::rast(paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Soil/soilGrids", listRaster_soilGrids, sep="/"))
-  
-   croppedLayer_soilGrids <- terra::crop(readLayers_soilGrids, countryShp)
+  croppedLayer_soil <- terra::crop(readLayers_soil, countryShp)
   
   ## save result
-  terra::writeRaster(croppedLayer_soilGrids, paste0(pathOut, "/soilGrids_geospatial_soils.tif", sep=""), filetype="GTiff", overwrite = overwrite)
+  fnames <- ifelse(dataSource == "iSDA", "iSDA_geospatial_soils.tif", "soilGrids_geospatial_soils.tif")
+  terra::writeRaster(croppedLayer_soil, paste(pathOut, fnames, sep="/"), filetype="GTiff", overwrite = overwrite)
   
-  return(croppedLayer_soilGrids)
+  return(croppedLayer_soil)
 }
-
-
-
 
 
 
@@ -115,6 +74,7 @@ crop_geoSpatial_soilGrids <- function(country, useCaseName, Crop, overwrite){
 #################################################################################################################
 
 #' @description function to transform soil data and generate derived variables
+#' @param country country name
 #' @param useCaseName use case name  name
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
 #' @param resFactor is an aggregation factor to change the resolution of the layers, soil data in global are at 1km res
@@ -123,23 +83,23 @@ crop_geoSpatial_soilGrids <- function(country, useCaseName, Crop, overwrite){
 #'
 #' @return raster files cropped from global data and the result will be written out in useCaseName/Crop/transform/Soil/soilGrids
 #'
-#' @examples soil_iSDA_transform(useCaseName = "Rwanda_RAB", Crop = "Potato", resFactor=1, overwrite = TRUE)
-transform_soils_data <- function(useCaseName, Crop, resFactor=1, overwrite = FALSE){
+#' @examples soil_iSDA_transform(country = "Rwanda", useCaseName = "RAB", Crop = "Potato", resFactor=1, overwrite = TRUE)
+transform_soils_data <- function(country, useCaseName, Crop, resFactor=1, overwrite = FALSE){
   
   ## create a directory to store the transformed data: with DA this will be in "usecaseName/crop/transform"
-
-  pathOut <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", useCaseName, "/", Crop, "/feature/Soil", sep="")
+  
+  pathOut <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/transform/Soil", sep="")
   
   
   if (!dir.exists(pathOut)){
     dir.create(file.path(pathOut), recursive = TRUE)
   }
   
-  pathIn <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", useCaseName, "/",Crop, "/raw/Soil/iSDA", sep="")
- 
+  pathIn <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Soil", sep="")
+  
   ## read, crop and save 
-  listRaster_iSDA <-list.files(path=pathIn, pattern=".tif$")
-  cropped4Country <- terra::rast(paste(pathIn, "/",listRaster_iSDA, sep=""))
+  # listRaster_iSDA <-list.files(path=pathIn, pattern=".tif$") 
+  cropped4Country <- terra::rast(paste(pathIn, "/","iSDA_geospatial_soils.tif", sep=""))
   
   ## get soil organic matter as a function of organic carbon
   cropped4Country$`SOM_0-20cm` <- (cropped4Country$`oc_0-20cm` * 2)/10
@@ -220,30 +180,27 @@ transform_soils_data <- function(useCaseName, Crop, resFactor=1, overwrite = FAL
   transformedLayer$'SWS_20-50cm' <- (transformedLayer$`FC_20-50cm`/100+transformedLayer$`SWS_20-50cm`/100-(0.097*transformedLayer$`sand.tot.psa_20-50cm`/100)+0.043)*100
   
   
-   names(transformedLayer) <- gsub("0-20cm", "top", names(transformedLayer))
-   names(transformedLayer) <- gsub("20-50cm", "bottom", names(transformedLayer))
-   names(transformedLayer) <- gsub("_0-200cm", "", names(transformedLayer))
-   names(transformedLayer) <- gsub("\\.", "_",  names(transformedLayer)) 
-   
-   ### transform soilGRIDS data
-   pathIn <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", useCaseName, "/",Crop, "/raw/Soil/soilGrids", sep="")
-   
-   ## read, crop and save 
-   listRaster_soilGrids <-list.files(path=pathIn, pattern=".tif$")
-   cropped4Country <- terra::rast(paste(pathIn, "/",listRaster_soilGrids, sep=""))
-   
-   ## Aggregation iSDA at ~1km resolution
-   if(resFactor > 1){
-     transformedLayer_isric <- aggregate(cropped4Country, fun=mean, fact=resFactor)
-   }else{
-     transformedLayer_isric <- cropped4Country
-   }
-   
-   names(transformedLayer_isric) <- gsub("0-30cm", "0_30", names(transformedLayer_isric))
-   twosourves <- c(transformedLayer, transformedLayer_isric)
+  names(transformedLayer) <- gsub("0-20cm", "top", names(transformedLayer))
+  names(transformedLayer) <- gsub("20-50cm", "bottom", names(transformedLayer))
+  names(transformedLayer) <- gsub("_0-200cm", "", names(transformedLayer))
+  names(transformedLayer) <- gsub("\\.", "_",  names(transformedLayer)) 
+  
+  
+  ## read, crop and save 
+  croppedisric <- terra::rast(paste(pathIn, "soilGrids_geospatial_soils.tif", sep="/"))
+  
+  ## Aggregation iSDA at ~1km resolution
+  if(resFactor > 1){
+    transformedLayer_isric <- aggregate(croppedisric, fun=mean, fact=resFactor)
+  }else{
+    transformedLayer_isric <- croppedisric
+  }
+  
+  names(transformedLayer_isric) <- gsub("0-30cm", "0_30", names(transformedLayer_isric))
+  twosourves <- c(transformedLayer, transformedLayer_isric)
   
   ### write out the result
-   terra::writeRaster(twosourves, paste0(pathOut ,"/soils_transformed.tif", sep=""), filetype="GTiff", overwrite = overwrite)
+  terra::writeRaster(twosourves, paste0(pathOut ,"/soils_transformed.tif", sep=""), filetype="GTiff", overwrite = overwrite)
   
   return(transformedLayer)
   
@@ -258,32 +215,46 @@ transform_soils_data <- function(useCaseName, Crop, resFactor=1, overwrite = FAL
 #' @param country country name
 #' @param useCaseName use case name  name
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
-#' @param GPSdata 
 #' @param AOI TRUE if the GPS are for prediction for the target area, FALSE otherwise, it is used to avoid overwriting the point data from the trial locations.
+#' @param ID if AOI  = FALSE ID should be given to identify every trial ID
 #'
 #' @return
 #' @examples extact_pointdata(country = "Rwanda", useCaseName = "RAB", Crop = "Potato", 
 #' GPSdata = read.csv("~/agwise/AgWise_Data/fieldData_analytics/UseCase_Rwanda_RAB/result/aggregated_field_data.csv"))
-extract_soil_pointdata <- function(country, useCaseName, Crop, GPSdata, AOI=FALSE){
+extract_soil_pointdata <- function(country, useCaseName, Crop, AOI=FALSE, ID=NULL){
   
-  GPSdata$x <- GPSdata$lon
-  GPSdata$y <- GPSdata$lat
-  gpsPoints <- unique(GPSdata[, c("x", "y")])
-  gpsPoints <- gpsPoints %>%
-    mutate_if(is.character, as.numeric)
-  pathin <- paste("~/agwise/AgWise_Data/data_sourcing/UseCase_",country, "_", useCaseName,"/", Crop,"/" ,"/feature/Soil", sep="")
+  if(AOI == TRUE){
+    GPSdata <- readRDS(paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/AOI_GPS.RDS", sep=""))
+    GPSdata <- unique(GPSdata[, c("longitude", "latitude")])
+    GPSdata <- GPSdata[complete.cases(GPSdata), ]
+  }else{
+    GPSdata <- readRDS(paste("~/agwise/AgWise_Data/fieldData_analytics/UseCase_",country, "_",useCaseName, "/", Crop, "/result/compiled_fieldData.RDS", sep=""))  
+    GPSdata <- unique(GPSdata[, c("lon", "lat", ID)])
+    GPSdata <- GPSdata[complete.cases(GPSdata), ]
+    names(GPSdata) <- c("longitude", "latitude", "ID")
+  }
+  
+  gpsPoints <- GPSdata
+  gpsPoints$x <- as.numeric(gpsPoints$longitude)
+  gpsPoints$y <- as.numeric(gpsPoints$latitude)
+  gpsPoints <- gpsPoints[, c("x", "y")]
+  
+  pathin <- paste("~/agwise/AgWise_Data/data_sourcing/UseCase_",country, "_", useCaseName,"/", Crop,"/" ,"/transform/Soil", sep="")
   
   listRaster <-list.files(path=pathin, pattern=".tif$")
-  
   soilLayer <- terra::rast(paste(pathin, listRaster, sep="/"))
-  
   datasoil <- as.data.frame(raster::extract(soilLayer, gpsPoints))
   
-  colnames(gpsPoints) <- c("lon", "lat")
+  datasoil <- subset(datasoil, select=-c(ID))
+  soilsData <- cbind(GPSdata, datasoil)
   
-  soilsData <- cbind(gpsPoints, datasoil)
+  countryShp <- geodata::gadm(country, level = 3, path='.')
+  dd2 <- raster::extract(countryShp, gpsPoints)[, c("NAME_1", "NAME_2")]
+  soilsData$NAME_1 <- dd2$NAME_1
+  soilsData$NAME_2 <- dd2$NAME_2
   
-  pathOut1 <- paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_", useCaseName,"/", Crop, "/result/", sep="")
+  
+  pathOut1 <- paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_", useCaseName,"/", Crop, "/result/Soil/", sep="")
   pathOut2 <- paste("~/agwise/AgWise_Data/fieldData_analytics/UseCase_", country, "_", useCaseName,"/", Crop, "/raw/Soil", sep="")
   pathOut3 <- paste("~/agwise/AgWise_Data/response_functions/UseCase_", country, "_", useCaseName,"/", Crop, "/raw/Soil", sep="")
   pathOut4 <- paste("~/agwise/AgWise_Data/potential_yield/UseCase_", country, "_", useCaseName,"/", Crop, "/raw/Soil", sep="")
@@ -304,8 +275,7 @@ extract_soil_pointdata <- function(country, useCaseName, Crop, GPSdata, AOI=FALS
     dir.create(file.path(pathOut4), recursive = TRUE)
   }
   
-  
-  f_name <- ifelse(AOI == TRUE, "geospatial_soilsPointData_AOI.RDS", "geospatial_soilsPointData_trial.RDS")
+  f_name <- ifelse(AOI == TRUE, "Soil_PointData_AOI.RDS", "Soil_PointData_trial.RDS")
   
   soilsData <- droplevels(soilsData[complete.cases(soilsData), ])
   
@@ -316,8 +286,3 @@ extract_soil_pointdata <- function(country, useCaseName, Crop, GPSdata, AOI=FALS
   
   return(soilsData)
 }
-
-
-
-
-

@@ -26,19 +26,15 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 
 crop_geoSpatial_Topography <- function(country, useCaseName, Crop, overwrite){
   
-  #TODO create a look up table to check use case - country names
-  ## get country abbreviation to used in gdam function
-  countryCC <- countrycode(country, origin = 'country.name', destination = 'iso3c')
-  
   ## create a directory to store the cropped data: 
-  pathOut <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", useCaseName, "/", Crop, "/raw/Topography", sep="")
+  pathOut <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Topography", sep="")
   
   if (!dir.exists(pathOut)){
     dir.create(file.path(pathOut), recursive = TRUE)
   }
   
   ## read the relevant shape file from gdam to be used to crop the global data
-  countryShp <- geodata::gadm(countryCC, level = 3, path='.')
+  countryShp <- geodata::gadm(country, level = 3, path='.')
   
   ## read dem layers and crop
   listRaster_dem <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Topography", pattern=".tif$")
@@ -63,14 +59,14 @@ crop_geoSpatial_Topography <- function(country, useCaseName, Crop, overwrite){
 #' @param useCaseName use case name  name
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
 #' @param overwrite default is FALSE 
-#' @param pathOut path to save the result: TODO When the data architect (DA) is implemented pathOut = "usecaseName/crop/feature/topography"
+#' @param pathOut path to save the result: TODO When the data architect (DA) is implemented pathOut = "usecaseName/crop/transform/topography"
 #' @examples derive_topography_data(useCaseName = "Rwanda_RAB", Crop = "Potato", resFactor=1, overwrite = TRUE)
 
-derive_topography_data <- function(country, useCaseName, Crop, overwrite = FALSE){
+derive_topography_data <- function(country, useCaseName, Crop, overwrite=FALSE){
   
   ## create a directory to store the derived data
 
- pathOut <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/feature/Topography", sep="")
+ pathOut <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/transform/Topography", sep="")
   
   if (!dir.exists(pathOut)){
     dir.create(file.path(pathOut), recursive = TRUE)
@@ -79,43 +75,76 @@ derive_topography_data <- function(country, useCaseName, Crop, overwrite = FALSE
   pathIn <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/",Crop, "/raw/Topography", sep="")
  
   ## read, crop, calculate and save the raster files
-  dem <- terra::rast("dem.tif")
-    terra::writeRaster(dem, filename = paste0(pathOut,"/dem.tif", sep=""), filetype = "GTiff")
-  slope <- terra::terrain(dem, v = 'slope', unit = 'degrees', filename = paste0(pathOut,"/slope.tif", sep=""))
-  tpi <- terra::terrain(dem, v = 'TPI', filename = paste0(pathOut,"/tpi.tif", sep=""))
-  tri <- terra::terrain(dem, v = 'TRI', filename = paste0(pathOut,"/tri.tif", sep=""))
+  dem <- terra::rast(paste(pathIn, "dem.tif", sep="/"))
+  
+  terra::writeRaster(dem, filename = paste0(pathOut,"/dem.tif", sep=""), filetype = "GTiff", overwrite=overwrite)
+  slope <- terra::terrain(dem, v = 'slope', unit = 'degrees', filename = paste0(pathOut,"/slope.tif", sep=""), overwrite=overwrite)
+  tpi <- terra::terrain(dem, v = 'TPI', filename = paste0(pathOut,"/tpi.tif", sep=""), overwrite=overwrite)
+  tri <- terra::terrain(dem, v = 'TRI', filename = paste0(pathOut,"/tri.tif", sep=""), overwrite=overwrite)
+  
 }
 
 
 
 #' Title extracting the point topography data for GPS of trial location from dem derived data 
+#' @details for AOI it requires a "AOI_GPS.RDS" data frame with c("longitude","latitude") columns being saved in 
+#'                            paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw", sep="") 
+#'          for trial sites it requires a "compiled_fieldData.RDS" data frame with c("lon", "lat", "plantingDate", "harvestDate") beinf saved in 
+#'                    paste("~/agwise/AgWise_Data/fieldData_analytics/UseCase_",country, "_",useCaseName, "/", Crop, "/result", sep="")
+
 #'
 #' @param country country name
 #' @param useCaseName use case name  name
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
-#' @param GPSdata 
 #' @param AOI TRUE if the GPS are for prediction for the target area, FALSE otherwise, it is used to avoid overwriting the point data from the trial locations.
+#' @param ID only when AOI  = FALSE, it is the column name Identifying the trial ID in compiled_fieldData.RDS
 #'
 #' @return
 #' @examples extract_topography_pointdata(country = "Rwanda", useCaseName = "RAB", Crop = "Potato", 
 #' GPSdata = read.csv("~/agwise/AgWise_Data/fieldData_analytics/UseCase_Rwanda_RAB/result/aggregated_field_data.csv"))
 
-extract_topography_pointdata <- function(country, useCaseName, Crop, GPSdata, AOI=FALSE){
+extract_topography_pointdata <- function(country, useCaseName, Crop, AOI=FALSE, ID=NULL){
   
-  GPSdata$x <- GPSdata$lon
-  GPSdata$y <- GPSdata$lat
-  gpsPoints <- unique(GPSdata[, c("x", "y")])
-  gpsPoints <- gpsPoints %>%
-    mutate_if(is.character, as.numeric)
-  pathin <- paste("~/agwise/AgWise_Data/data_sourcing/UseCase_",country, "_", useCaseName,"/", Crop,"/" ,"/feature/Topography", sep="")
+  if(AOI == TRUE){
+    GPSdata <- readRDS(paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/AOI_GPS.RDS", sep=""))
+    GPSdata <- unique(GPSdata[, c("longitude", "latitude")])
+    GPSdata <- GPSdata[complete.cases(GPSdata), ]
+  }else{
+    GPSdata <- readRDS(paste("~/agwise/AgWise_Data/fieldData_analytics/UseCase_",country, "_",useCaseName, "/", Crop, "/result/compiled_fieldData.RDS", sep=""))  
+    GPSdata <- unique(GPSdata[, c("lon", "lat", ID)])
+    GPSdata <- GPSdata[complete.cases(GPSdata), ]
+    names(GPSdata) <- c("longitude", "latitude", "ID")
+  }
+  
+  gpsPoints <- GPSdata
+  gpsPoints$x <- as.numeric(gpsPoints$longitude)
+  gpsPoints$y <- as.numeric(gpsPoints$latitude)
+  gpsPoints <- gpsPoints[, c("x", "y")]
+  
+  pathin <- paste("~/agwise/AgWise_Data/data_sourcing/UseCase_",country, "_", useCaseName,"/", Crop,"/" ,"/transform/Topography", sep="")
     
   listRaster <-list.files(path=pathin, pattern=".tif$")
   topoLayer <- terra::rast(paste(pathin, listRaster, sep="/"))
-  datatopo <- terra::extract(topoLayer, gpsPoints, xy = TRUE)
-  colnames(gpsPoints) <- c("lon", "lat")
-  topoData <- cbind(gpsPoints, datatopo)
+  # datatopo <- terra::extract(topoLayer, gpsPoints, xy = TRUE)
+  datatopo <- terra::extract(topoLayer, gpsPoints, method='simple', cells=FALSE)
+  datatopo <- subset(datatopo, select=-c(ID))
+  topoData <- cbind(GPSdata, datatopo)
+  
+  countryShp <- geodata::gadm(country, level = 3, path='.')
+  dd2 <- raster::extract(countryShp, gpsPoints)[, c("NAME_1", "NAME_2")]
+  topoData$NAME_1 <- dd2$NAME_1
+  topoData$NAME_2 <- dd2$NAME_2
+  
+  if(!is.null(ID)){
+    topoData <- topoData[, c("longitude", "latitude", "ID", "layer", "slope", "TPI", "TRI","NAME_1", "NAME_2")]
+    colnames(topoData) <- c("longitude", "latitude", "ID" ,"altitude", "slope", "TPI", "TRI", "NAME_1", "NAME_2")
+  }else{
+    topoData <- topoData[, c("longitude", "latitude", "layer", "slope", "TPI", "TRI","NAME_1", "NAME_2")]
+    colnames(topoData) <- c("longitude", "latitude", "altitude", "slope", "TPI", "TRI", "NAME_1", "NAME_2")
+  }
+  
     
-    pathOut1 <- paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_", useCaseName,"/", Crop, "/result/", sep="")
+  pathOut1 <- paste("~/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_", useCaseName,"/", Crop, "/result/Topography", sep="")
   pathOut2 <- paste("~/agwise/AgWise_Data/fieldData_analytics/UseCase_", country, "_", useCaseName,"/", Crop, "/raw/Topography", sep="")
   pathOut3 <- paste("~/agwise/AgWise_Data/response_functions/UseCase_", country, "_", useCaseName,"/", Crop, "/raw/Topography", sep="")
   pathOut4 <- paste("~/agwise/AgWise_Data/potential_yield/UseCase_", country, "_", useCaseName,"/", Crop, "/raw/Topography", sep="")
@@ -136,7 +165,7 @@ extract_topography_pointdata <- function(country, useCaseName, Crop, GPSdata, AO
     dir.create(file.path(pathOut4), recursive = TRUE)
   }
     
-    f_name <- ifelse(AOI == TRUE, "geospatial_topographyPointData_AOI.RDS", "geospatial_topographyPointData_trial.RDS")
+  f_name <- ifelse(AOI == TRUE, "Topography_PointData_AOI.RDS", "Topography_PointData_trial.RDS")
   
   saveRDS(topoData, paste(pathOut1, f_name, sep="/"))
   saveRDS(topoData, paste(pathOut2, f_name, sep="/"))
