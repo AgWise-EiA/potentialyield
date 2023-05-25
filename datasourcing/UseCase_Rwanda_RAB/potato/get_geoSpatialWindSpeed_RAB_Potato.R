@@ -3,8 +3,8 @@
 #################################################################################################################
 ## source "get_rain_temp_summary.R" function and get rain and temperature summary data 
 #################################################################################################################
-source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialWindSpeed_MC.R")
-
+#source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialWindSpeed_MC.R")
+source("~/agwise-datasourcing/dataops/datasourcing/get_geoSpatialWindSpeed_MC.R")
 
 
 #################################################################################################################
