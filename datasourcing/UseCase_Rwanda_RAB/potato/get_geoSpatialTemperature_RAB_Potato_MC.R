@@ -13,12 +13,12 @@ source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialTemperature_MC.R")
 #################################################################################################################
 trial_point_Tmax_AgEra <- get_temp_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE,
                                              overwrite = TRUE, Planting_month_date = NULL,  Harvest_month_date = NULL, 
-                                            jobs=10, season=NULL, dataSource = "AgEra", varName = "Tmax", ID="TLID")
+                                            jobs=10, dataSource = "AgEra", varName = "Tmax", ID="TLID")
 
 
 trial_point_Tmin_AgEra <- get_temp_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE, 
                                              overwrite = TRUE,Planting_month_date = NULL,  Harvest_month_date = NULL, 
-                                             jobs=10, season=NULL, dataSource = "AgEra", varName = "Tmin", ID="TLID")
+                                             jobs=10, dataSource = "AgEra", varName = "Tmin", ID="TLID")
 
 #################################################################################################################
 ## get daily TMax and Tmin 
@@ -26,12 +26,12 @@ trial_point_Tmin_AgEra <- get_temp_pointData(country = "Rwanda",  useCaseName = 
 #################################################################################################################
 
 AOI_point_Tmax_AgEra5 <- get_temp_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = TRUE,
-                                   overwrite = TRUE, season="season1", Planting_month_date = "02-05", 
+                                   overwrite = TRUE, Planting_month_date = "02-05", 
                                    Harvest_month_date = "06-05", jobs=10, dataSource = "AgEra", varName = "Tmax", ID = NULL)
 
 
 AOI_point_Tmin_AgEra5 <- get_temp_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = TRUE,
-                                    overwrite = TRUE, season="season1", Planting_month_date = "02-05", 
+                                    overwrite = TRUE, Planting_month_date = "02-05", 
                                     Harvest_month_date = "06-05", jobs=10, dataSource = "AgEra", varName = "Tmin", ID = NULL)
 
 #################################################################################################################
@@ -40,13 +40,13 @@ AOI_point_Tmin_AgEra5 <- get_temp_pointData(country = "Rwanda",  useCaseName = "
 #################################################################################################################
 
 AOI_Tmax_summary_p1 <- get_temp_pointSummarydata(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", 
-                                    AOI = TRUE, overwrite = TRUE, season="season1", Planting_month_date = "02-05", 
+                                    AOI = TRUE, overwrite = TRUE, Planting_month_date = "02-05", 
                                     Harvest_month_date = "06-05", jobs=10,
                                     dataSource = "AgEra", varName = "Tmax")
 
 
 AOI_Tmin_summary_p1 <- get_temp_pointSummarydata(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", 
-                                    AOI = TRUE, overwrite = TRUE, season="season1", Planting_month_date = "02-05", 
+                                    AOI = TRUE, overwrite = TRUE, Planting_month_date = "02-05", 
                                     Harvest_month_date = "06-05", jobs=10,
                                     dataSource = "AgEra", varName = "Tmin")
 
@@ -57,13 +57,13 @@ AOI_Tmin_summary_p1 <- get_temp_pointSummarydata(country = "Rwanda",  useCaseNam
 #################################################################################################################
 
 trial_Tmax_summary_p1 <- get_temp_pointSummarydata(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", 
-                                      AOI = FALSE, overwrite = TRUE, season=NULL, Planting_month_date = NULL, 
+                                      AOI = FALSE, overwrite = TRUE, Planting_month_date = NULL, 
                                       Harvest_month_date = NULL, jobs=10,
                                       dataSource = "AgEra", varName = "Tmax", ID="TLID")
 
 
 trial_Tmin_summary_p1 <- get_temp_pointSummarydata(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", 
-                                      AOI = FALSE, overwrite = TRUE, season=NULL, Planting_month_date = NULL, 
+                                      AOI = FALSE, overwrite = TRUE, Planting_month_date = NULL, 
                                       Harvest_month_date = NULL, jobs=10,
                                       dataSource = "AgEra", varName = "Tmin", ID="TLID")
 

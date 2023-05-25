@@ -1,5 +1,4 @@
 
-
 # 1. Sourcing required packages -------------------------------------------
 #################################################################################################################
 packages_required <- c("doParallel", "foreach", "chirps", "tidyverse", "dplyr", "lubridate", "stringr", "terra", "countrycode", "sf")
@@ -37,7 +36,7 @@ crop_geoSpatial_rainfall <- function(country, useCaseName, Crop, dataSource, ove
   ## create a directory to store the cropped data: 
   if(dataSource == "CHIRPS"){
     pathOut <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Rainfall/CHIRPS", sep="")
-    
+  
     ## read rainfall layers and crop
     listRaster_rf <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Rainfall/chirps", pattern=".nc$")
     readLayers_rf <- terra::rast(paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Rainfall/chirps", listRaster_rf, sep="/"))
@@ -60,7 +59,7 @@ crop_geoSpatial_rainfall <- function(country, useCaseName, Crop, dataSource, ove
   # 2.2. Cropped the rainfall layers and save the results #### 
   ## crop the layers 
   croppedLayer_rf <- terra::crop(readLayers_rf, countryShp)
-  
+
   ## save result
   terra::writeRaster(croppedLayer_rf, paste(pathOut, fileName , sep="/"), filetype="GTiff", overwrite = overwrite)
   
@@ -82,9 +81,9 @@ crop_geoSpatial_rainfall <- function(country, useCaseName, Crop, dataSource, ove
 #'
 #' @return  a data frame with total rainfall, number of rainy days and monthly rainfall
 #' @example summary_pointdata_rainfall(rastLayer1="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Rainfall/chirps/1981.nc",
-# raster2="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Rainfall/chirps/1982.nc",
-# gpsdata=data.frame(longitude = c(29.375, 30.125), latitude = c(-2.825, -2.425)),  
-# pl_j=35, hv_j=150, planting_harvest_sameYear = TRUE)
+                   # raster2="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Rainfall/chirps/1982.nc",
+                   # gpsdata=data.frame(longitude = c(29.375, 30.125), latitude = c(-2.825, -2.425)),  
+                   # pl_j=35, hv_j=150, planting_harvest_sameYear = TRUE)
 
 summary_pointdata_rainfall <- function(rastLayer1=NULL, rastLayer2=NULL, gpsdata, pl_j, hv_j, planting_harvest_sameYear){
   
@@ -96,7 +95,7 @@ summary_pointdata_rainfall <- function(rastLayer1=NULL, rastLayer2=NULL, gpsdata
     rasti2 <- terra::rast(rastLayer2, lyrs=c(1:hv_j))
     PlHvD <- c(rasti1, rasti2)
   }
-  
+ 
   xy <- gpsdata[, c("longitude", "latitude")]
   raini <- terra::extract(PlHvD, xy, method='simple', cells=FALSE)
   raini <- raini[,-1]
@@ -106,40 +105,40 @@ summary_pointdata_rainfall <- function(rastLayer1=NULL, rastLayer2=NULL, gpsdata
   
   rainiq <- t(raini[c(2:length(raini))])
   gpsdata$totalRF <- colSums(rainiq)
-  
+    
   ## The number of rainy days (thr= 2 mm) over the growing period 
   gpsdata$nrRainyDays <- NULL
-  for (m in 1:nrow(raini)){
-    print(m)
-    mdata <- raini[m, ]
-    mdata[mdata < 2] <- 0
-    mdata[mdata >= 2] <- 1
-    gpsdata$nrRainyDays[m] <- sum(mdata)
-    
-    ## The monthly rainfall, at 31 days interval and the remaining  days at the end, over the growing period
-    mrdi <- raini[m, ]
-    mdiv <- unique(c(seq(1, length(mrdi), 30), length(mrdi)))
-    
-    mrf <- c()
-    for (k in 1:(length(mdiv)-1)) {
-      print(k)
-      if(k == 1){
-        mrf <- c(mrf, sum(mrdi[c(mdiv[k]:mdiv[k+1])]))
-      }else{
-        mrf <- c(mrf, sum(mrdi[c((mdiv[k]+1):(mdiv[k+1]))]))
+    for (m in 1:nrow(raini)){
+      print(m)
+      mdata <- raini[m, ]
+      mdata[mdata < 2] <- 0
+      mdata[mdata >= 2] <- 1
+      gpsdata$nrRainyDays[m] <- sum(mdata)
+      
+  ## The monthly rainfall, at 31 days interval and the remaining  days at the end, over the growing period
+      mrdi <- raini[m, ]
+      mdiv <- unique(c(seq(1, length(mrdi), 30), length(mrdi)))
+      
+      mrf <- c()
+      for (k in 1:(length(mdiv)-1)) {
+        print(k)
+        if(k == 1){
+          mrf <- c(mrf, sum(mrdi[c(mdiv[k]:mdiv[k+1])]))
+        }else{
+          mrf <- c(mrf, sum(mrdi[c((mdiv[k]+1):(mdiv[k+1]))]))
+        }
+      }
+      
+      if(length(mrf) > 6){## if the crop is > 6 month on the field
+        mrf <- c(mrf, rep("NA", 6 -length(mrf)))
+      }
+      
+      mrf_names <- c(paste0("Rain_month", c(1:6)))
+      for (h in 1:length(mrf_names)) {
+        colname <- mrf_names[h]
+        gpsdata[[colname]][m] <- mrf[h]
       }
     }
-    
-    if(length(mrf) > 6){## if the crop is > 6 month on the field
-      mrf <- c(mrf, rep("NA", 6 -length(mrf)))
-    }
-    
-    mrf_names <- c(paste0("Rain_month", c(1:6)))
-    for (h in 1:length(mrf_names)) {
-      colname <- mrf_names[h]
-      gpsdata[[colname]][m] <- mrf[h]
-    }
-  }
   
   if(planting_harvest_sameYear== TRUE){
     gpsdata$plantingYear <- str_extract(rastLayer1, "[[:digit:]]+")
@@ -148,9 +147,9 @@ summary_pointdata_rainfall <- function(rastLayer1=NULL, rastLayer2=NULL, gpsdata
     gpsdata$plantingYear <- str_extract(rastLayer1, "[[:digit:]]+")
     gpsdata$harvestYear <- str_extract(rastLayer2, "[[:digit:]]+")
   }
-  
-  
-  
+ 
+
+
   return(gpsdata)
 }
 
@@ -187,12 +186,12 @@ summary_pointdata_rainfall <- function(rastLayer1=NULL, rastLayer2=NULL, gpsdata
 #' @examples: get_summaries(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE, overwrite = TRUE,
 #'             season="season1", Planting_month_date = "07-01",  Harvest_month_date = "11-30", jobs=10, id = "TLID")
 get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
-                             Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                             jobs = 10, season="season_1", dataSource, ID){
-  
+                                  Planting_month_date = "02-01", Harvest_month_date = "05-30", 
+                                  jobs = 10, season="season_1", dataSource, ID){
+ 
   # 4.1. Initialization of input and output data ####
   
-  # Input rainfall
+   # Input rainfall
   if(dataSource == "CHIRPS"){
     listRaster_RF <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/Rainfall/chirps", pattern=".nc$", full.names = TRUE)
   }else{
@@ -203,14 +202,14 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
   pathOut1 <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/result/Rainfall", sep="")
   pathOut2 <- paste("/home/jovyan/agwise/AgWise_Data/potential_yield/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Rainfall", sep="")
   pathOut3 <- paste("/home/jovyan/agwise/AgWise_Data/response_functions/UseCase_", country, "_",useCaseName, "/", Crop, "/raw/Rainfall", sep="")
-  
+
   if (!dir.exists(pathOut1)){
     dir.create(file.path(pathOut1), recursive = TRUE)
   }
   
-  if (!dir.exists(pathOut2)){
+   if (!dir.exists(pathOut2)){
     dir.create(file.path(pathOut2), recursive = TRUE)
-  }
+   }
   
   if (!dir.exists(pathOut3)){
     dir.create(file.path(pathOut3), recursive = TRUE)
@@ -248,9 +247,9 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
     names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate", ID)
     ground <- countryCoord
   }
-  
-  
-  
+ 
+
+
   ground$Planting <- as.Date(ground$plantingDate, "%Y-%m-%d") # Planting date in Date format
   ground$Harvesting <- as.Date(ground$harvestDate, "%Y-%m-%d") # Harvesting date in Date format
   
@@ -258,7 +257,7 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
   dd2 <- raster::extract(countryShp, ground[, c("longitude", "latitude")])[, c("NAME_1", "NAME_2")]
   ground$NAME_1 <- dd2$NAME_1
   ground$NAME_2 <- dd2$NAME_2
-  
+
   # 4.2. Compute the seasonal rainfall parameters for AOI ####
   
   if(AOI == TRUE){
@@ -294,8 +293,8 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
       
       cls <- makeCluster(jobs)
       doParallel::registerDoParallel(cls)
-      ## Rainfall
-      rf_result2 <- foreach(i = 1:(length(listRaster_RF)-1), .packages = c('terra', 'plyr', 'stringr','tidyr')) %dopar% {
+     ## Rainfall
+        rf_result2 <- foreach(i = 1:(length(listRaster_RF)-1), .packages = c('terra', 'plyr', 'stringr','tidyr')) %dopar% {
         listRaster_RF <- listRaster_RF[order(listRaster_RF)]
         rast1 <- listRaster_RF[i]
         rast2 <- listRaster_RF[i+1]
@@ -314,14 +313,14 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
         raini$plantingYear <- str_extract(rast1, "[[:digit:]]+")
         raini$harvestYear <- str_extract(rast2, "[[:digit:]]+")
         ground2 <- cbind(ground, raini)
-        
+     
       }
       
       rainfall_points <- do.call(rbind, rf_result2)
       stopCluster(cls)
       
     }
-    
+  
     # 4.3. Compute the seasonal rainfall parameters for trial data ####
     # when the planting and harvest dates varies for every row of data because it is actual trial data
   }else {
@@ -337,8 +336,8 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
     
     # get the max number of days on the field to use is to create column names. Given trials can have different start and end dates, the column names does not match if we use the date of the year
     ground$growinglength <- ifelse(ground$yearPi == ground$yearHi, 
-                                   ground$hv_j - ground$pl_j,
-                                   365 - ground$pl_j + ground$hv_j)
+                                      ground$hv_j - ground$pl_j,
+                                      365 - ground$pl_j + ground$hv_j)
     
     # create list of all possible column names to be able to rbind data from different sites with different planting and harvest dates
     rf_names <- c(paste0("Rain_", c(min(ground$pl_j):max(ground$hv_j))))
@@ -348,7 +347,7 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
     rf_names2[,2] <- rf_names
     
     ## 4.3.2. Loop on all the trial location to calculate the seasonal rainfall parameters ####
-    
+
     rainfall_points <- NULL
     for(i in 1:nrow(ground)){
       print(i)
@@ -364,7 +363,7 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
       pl_j <- groundi$pl_j
       hv_j <- groundi$hv_j
       
-      
+     
       ### 4.3.2.1. Subset the rainfall data according to the length of the growing season ####
       # Case planting and harvesting dates span the same year
       
@@ -380,15 +379,15 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
         rasti2 <-listRaster_RF[which(grepl(yearHi, listRaster_RF, fixed=TRUE) == T)]
         rasti2 <- terra::rast(rasti2, lyrs=c(1:hv_j))
         rasti <- c(rasti1, rasti2)
-        
+      
       }
       
       ### 4.3.2.2.Extract the information for the i-th row ####
       
       xy <- groundi[, c("longitude", "latitude")]
       xy <- xy %>%
-        mutate_if(is.character, as.numeric)
-      
+       mutate_if(is.character, as.numeric)
+       
       raini <- terra::extract(rasti, xy,method='simple', cells=FALSE)
       raini <- raini[,-1]
       names(raini) <- sub("^[^_]+", "", names(raini))
@@ -409,11 +408,11 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
     }
   }
   
-  # 4.4. Writting the output ####
+ # 4.4. Writting the output ####
   
   # Check if the directory exists
   Planting_month_date <- gsub("-", "_", Planting_month_date)
-  fname_rain <- ifelse(AOI == "TRUE", paste("Rainfall_pointData_AOI_", season,"_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste("Rainfall_pointData_trial_", dataSource, ".RDS", sep=""))
+   fname_rain <- ifelse(AOI == "TRUE", paste("Rainfall_pointData_AOI_", season,"_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste("Rainfall_pointData_trial_", dataSource, ".RDS", sep=""))
   
   saveRDS(object = rainfall_points, file=paste(pathOut1, fname_rain, sep="/"))
   saveRDS(object = rainfall_points, file=paste(pathOut2, fname_rain, sep="/"))
@@ -450,10 +449,10 @@ get_rf_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite 
 #' @examples: get_rf_pointSummarydata(country = "Rwanda";  useCaseName = "RAB"; Crop = "Potato"; AOI = FALSE; overwrite = TRUE;
 #' season="season1";Planting_month_date = "07-01";  Harvest_month_date = "11-30";jobs=10, id = "TLID")
 get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
-                                    Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                                    jobs = 10, season="season_1", dataSource, ID){
+                                         Planting_month_date = "02-01", Harvest_month_date = "05-30", 
+                                         jobs = 10, season="season_1", dataSource, ID){
   
-  
+ 
   # 5.1. Initialization of input and output data ####
   
   # Input rainfall
@@ -544,7 +543,7 @@ get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ove
       rainfall_points <- do.call(rbind, rf_result)
       
     }
-    
+  
     ## 5.2.2. Case planting and harvesting dates span two different years ####
     if (planting_harvest_sameYear ==  FALSE) {
       cls <- makeCluster(jobs)
@@ -602,7 +601,7 @@ get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ove
         rasti2 <-listRaster_RF[which(grepl(yearHi, listRaster_RF, fixed=TRUE) == T)]
         rasti2 <- terra::rast(rasti2, lyrs=c(1:hv_j))
         rasti <- c(rasti1, rasti2)
-        
+       
       }
       
       ## 5.3.3 Extract the information for the i-th row ####
@@ -653,7 +652,7 @@ get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ove
   }
   
   rainfall_points <- rainfall_points %>% 
-    select_if(~sum(!is.na(.)) > 0)
+                                select_if(~sum(!is.na(.)) > 0)
   
   
   ## 5.4 Writting of output #### 
@@ -697,8 +696,8 @@ get_rf_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ove
 #' @examples: get_rf_rasterSummarydata(country = "Rwanda";  useCaseName = "RAB"; Crop = "Potato"; AOI = FALSE; overwrite = TRUE;
 #' season="season1";Planting_month_date = "07-01";  Harvest_month_date = "11-30";jobs=10, dataSource = "CHIRPS", scenario=TRUE)
 get_rf_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
-                                     Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                                     jobs = 10, season="season_1", dataSource, scenario=TRUE) {
+                                    Planting_month_date = "02-01", Harvest_month_date = "05-30", 
+                                    jobs = 10, season="season_1", dataSource, scenario=TRUE) {
   
   # 6.1. Initialization of input and output data ####
   
@@ -713,12 +712,12 @@ get_rf_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ov
   
   # Creation of the output dir
   pathOut1 <- paste("/home/jovyan/agwise/AgWise_Data/data_sourcing/UseCase_", country, "_",useCaseName, "/", Crop, "/result/Rainfall", sep="")
-  
+
   if (!dir.exists(pathOut1)){
     dir.create(file.path(pathOut1), recursive = TRUE)
   }
   
-  # Input Extent
+ # Input Extent
   if (AOI == FALSE){
     # Case AOI = False
     #read the relevant shape file from gdam to be used to crop the global data
@@ -735,7 +734,7 @@ get_rf_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ov
     terra::crs(countryShp) <- "+proj=longlat +datum=WGS84"
     
   }
-  
+ 
   # Check if both planting and harvest dates are in the same year
   Planting_month <- as.numeric(str_extract(Planting_month_date, "[^-]+"))
   harvest_month <- as.numeric(str_extract(Harvest_month_date, "[^-]+"))
@@ -766,7 +765,7 @@ get_rf_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ov
       tot.out <- terra::rast(listRaster_RF[1], lyrs=1)
       tot.out <- terra::crop(tot.out, countryShp)
       tot.out[] <- 'NA'
-      
+
       # Read raster
       readLayers <- terra::rast(listRaster_RF[i], lyrs=c(pl_Date:hv_Date))
       
@@ -776,46 +775,46 @@ get_rf_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ov
       # Compute the total amount of rainfall
       toti <- terra::app(croppedLayers, fun='sum')
       tot.out <- toti
-      
+        
       # Compute the Daily intensity
       dii <- toti/(hv_Date-pl_Date)
       di.out <- dii
-      
+        
       # Compute the Number of rainy day
       nrdi <- croppedLayers
       nrdi[croppedLayers < 2] <- 0
       nrdi[croppedLayers >= 2]<-1
       nrdi <- terra::app(nrdi, fun='sum')
       nrd.out <- nrdi
-      
+        
       # Compute monthly rainfall, at 31 days interval and the remaining  days at the end
       mrdi <- terra::nlyr(croppedLayers)
       mdiv <- unique(c(seq(1, mrdi, 30), mrdi))
-      
-      for (k in 1:(length(mdiv)-1)) {
-        if(k == 1){
-          temp <- croppedLayers[[c(mdiv[k]:mdiv[k+1])]]
-          mrf <- terra::app(temp, fun='sum')
-        }else{
-          temp <- croppedLayers[[c(mdiv[k]+1:mdiv[k+1])]]
-          mrf2 <- terra::app(temp, fun='sum')
-          mrf <- c(mrf,mrf2)
+        
+        for (k in 1:(length(mdiv)-1)) {
+          if(k == 1){
+            temp <- croppedLayers[[c(mdiv[k]:mdiv[k+1])]]
+            mrf <- terra::app(temp, fun='sum')
+          }else{
+            temp <- croppedLayers[[c(mdiv[k]+1:mdiv[k+1])]]
+            mrf2 <- terra::app(temp, fun='sum')
+            mrf <- c(mrf,mrf2)
+          }
         }
-      }
-      
-      if(terra::nlyr(mrf) > 6){## if the crop is > 6 month on the field
-        mrf <- mrf[[c(1:6)]]
-      }
-      
+        
+        if(terra::nlyr(mrf) > 6){## if the crop is > 6 month on the field
+          mrf <- mrf[[c(1:6)]]
+        }
+        
       # write ouput for the year i
       rf_summary <- c(tot.out, di.out, nrd.out, mrf)
       names(rf_summary) <- c("TotalRF", "nrRainyDays", "Di", c(paste0("Rain_month", c(1:terra::nlyr(mrf)))))
-      
+    
       Planting_month_date2 <- gsub("-", "_", Planting_month_date)
       fname_rain <- ifelse(AOI == "TRUE", paste("Rainfall_Raster_summaries_AOI_", season,"_" ,Planting_month_date2, "_", dataSource,"_", listYear_CHIRPS[i], ".tif",sep=""), paste("Rainfall_Raster_summaries_Country_", season,"_" ,Planting_month_date2, "_", dataSource,"_", listYear_CHIRPS[i],".tif", sep=""))
       terra::writeRaster(rf_summary, paste(pathOut1, fname_rain, sep="/"), filetype="GTiff", overwrite=overwrite)
-      
-    }
+
+      }
     stopCluster(cls)
   }
   
@@ -937,7 +936,7 @@ get_rf_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ov
     }
     
   }
-  
+
   ## 6.3.2. Write the output
   fname_scenario <- ifelse(AOI == "TRUE", paste("Rainfall_Raster_scenario_AOI_", season,"_" ,Planting_month_date2, "_", dataSource, ".tif",sep=""), paste("Rainfall_Raster_scenario_Country_", season,"_" ,Planting_month_date2, "_", dataSource,".tif", sep=""))
   
@@ -947,7 +946,8 @@ get_rf_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ov
   terra::writeRaster(average, paste(pathOut1, paste0("Average_",fname_scenario), sep="/"), filetype="GTiff", overwrite=overwrite)
   # Above
   terra::writeRaster(above, paste(pathOut1, paste0("Above_",fname_scenario), sep="/"), filetype="GTiff", overwrite=overwrite)
-  
+
 }
+
 
 

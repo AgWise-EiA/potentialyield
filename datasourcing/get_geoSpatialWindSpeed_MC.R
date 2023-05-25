@@ -153,7 +153,6 @@ summary_pointdata_WS <- function(rastLayer1= NULL, rastLayer2=NULL, gpsdata, pl_
 #' @param Planting_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual planting date is be used so no need to change the default value
 #' @param Harvest_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual harvest date is be used so no need to change the default value
 #' @param jobs defines how many cores to use for parallel data sourcing
-#' @param season used to formulate a file name and is useful when data for different seasons is needed 
 #' @param dataSource is among c("chirts", "AgEra")
 #' @param ID only when AOI  = FALSE, it is the column name Identifying the trial ID in compiled_fieldData.RDS
 #' 
@@ -162,10 +161,10 @@ summary_pointdata_WS <- function(rastLayer1= NULL, rastLayer2=NULL, gpsdata, pl_
 #'        AvWindSpeed : average WindSpeed between pl_Date and hv_Date
 #'        monthly_: monthly Wind Speed for the growing season
 #' @examples: get_WindSpeed_pointSummarydata(country = "Rwanda";  useCaseName = "RAB"; Crop = "Potato"; AOI = FALSE; overwrite = TRUE;
-#' season="season1";Planting_month_date = "07-01";  Harvest_month_date = "11-30"; jobs=10, ID = "TLID")
+#' Planting_month_date = "07-01";  Harvest_month_date = "11-30"; jobs=10, ID = "TLID")
 get_WindSpeed_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
                                          Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                                         jobs = 10, season=NULL, dataSource, ID){
+                                         jobs = 10, dataSource, ID){
   
   ## define the directories store the result and also read list of .nc files 
   if(dataSource == "chirts"){
@@ -363,7 +362,7 @@ get_WindSpeed_pointSummarydata <- function(country, useCaseName, Crop, AOI = FAL
   # 4 Writting of output: Check if the directory exists
   Planting_month_date <- gsub("-", "_", Planting_month_date)
   
-  fname_WS <- ifelse(AOI == "TRUE", paste("WindSpeed_summaries_AOI_", season,"_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste("WindSpeed_summaries_trial_", dataSource, ".RDS", sep=""))
+  fname_WS <- ifelse(AOI == "TRUE", paste("WindSpeed_summaries_AOI_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste("WindSpeed_summaries_trial_", dataSource, ".RDS", sep=""))
  
   saveRDS(object = WindSpeed_points, file=paste(pathOut1, fname_WS, sep="/"))
   saveRDS(object = WindSpeed_points, file=paste(pathOut2, fname_WS, sep="/"))
@@ -396,7 +395,6 @@ get_WindSpeed_pointSummarydata <- function(country, useCaseName, Crop, AOI = FAL
 #' @param Planting_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual planting date is be used so no need to change the default value
 #' @param Harvest_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual harvest date is be used so no need to change the default value
 #' @param jobs defines how many cores to use for parallel data sourcing
-#' @param season used to formulate a file name and is useful when data for different seasons is needed 
 #' @param dataSource is one of c("chirts", "AgEra")
 #' @param ID only when AOI  = FALSE, it is the column name Identifying the trial ID in compiled_fieldData.RDS
 #' 
@@ -410,10 +408,10 @@ get_WindSpeed_pointSummarydata <- function(country, useCaseName, Crop, AOI = FAL
 #' 
 #' @examples: get_WindSpeed_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE, overwrite = TRUE,
 #'             Planting_month_date = "07-01",  Harvest_month_date = "11-30", 
-#'             jobs=10, season="season_1", dataSource = "AgEra", ID = "TLID")
+#'             jobs=10, dataSource = "AgEra", ID = "TLID")
 get_WindSpeed_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
                                Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                               jobs = 10, season="season_1", dataSource, ID = NULL){
+                               jobs = 10, dataSource, ID = NULL){
   
   if(dataSource == "chirts"){
     listRaster_WS <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/WindSpeed/chirts", pattern=".nc$", full.names = TRUE)
@@ -624,7 +622,7 @@ get_WindSpeed_pointData <- function(country, useCaseName, Crop, AOI = FALSE, ove
   Planting_month_date <- gsub("-", "_", Planting_month_date)
   
   
-  fname_WS <- ifelse(AOI == "TRUE", paste("WindSpeed_pointData_AOI_", season,"_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste("WindSpeed_pointData_trial_", dataSource, ".RDS", sep=""))
+  fname_WS <- ifelse(AOI == "TRUE", paste("WindSpeed_pointData_AOI_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste("WindSpeed_pointData_trial_", dataSource, ".RDS", sep=""))
   
   saveRDS(object = WindSpeed_points, file=paste(pathOut1, fname_WS, sep="/"))
   saveRDS(object = WindSpeed_points, file=paste(pathOut2, fname_WS, sep="/"))

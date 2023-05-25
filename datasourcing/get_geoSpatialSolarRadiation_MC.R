@@ -155,7 +155,6 @@ summary_pointdata_SR <- function(rastLayer1= NULL, rastLayer2=NULL, gpsdata, pl_
 #' @param Planting_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual planting date is be used so no need to change the default value
 #' @param Harvest_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual harvest date is be used so no need to change the default value
 #' @param jobs defines how many cores to use for parallel data sourcing
-#' @param season used to formulate a file name and is useful when data for different seasons is needed 
 #' @param dataSource is among c("chirts", "AgEra")
 #' @param ID only when AOI  = FALSE, it is the column name Identifying the trial ID in compiled_fieldData.RDS
 #'  
@@ -163,10 +162,10 @@ summary_pointdata_SR <- function(rastLayer1= NULL, rastLayer2=NULL, gpsdata, pl_
 #'        AvSolarRadiation : average SolarRadiation between pl_Date and hv_Date
 #'        monthly_: monthly Solar Radiation for the growing season
 #' @examples: get_SolarRadiation_pointSummarydata(country = "Rwanda";  useCaseName = "RAB"; Crop = "Potato"; AOI = FALSE; overwrite = TRUE;
-#' season="season1";Planting_month_date = "07-01";  Harvest_month_date = "11-30"; jobs=10)
+#' Planting_month_date = "07-01";  Harvest_month_date = "11-30"; jobs=10)
 get_SolarRadiation_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
                                          Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                                         jobs = 10, season=NULL, dataSource, ID = NULL){
+                                         jobs = 10, dataSource, ID = NULL){
   
   ## define the directories store the result and also read list of .nc files 
   if(dataSource == "chirts"){
@@ -363,7 +362,7 @@ get_SolarRadiation_pointSummarydata <- function(country, useCaseName, Crop, AOI 
   # 4 Writting of output: Check if the directory exists
   Planting_month_date <- gsub("-", "_", Planting_month_date)
   
-  fname_SR <- ifelse(AOI == "TRUE", paste("SolarRadiation_summaries_AOI_", season,"_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste("SolarRadiation_summaries_trial_", dataSource, ".RDS", sep=""))
+  fname_SR <- ifelse(AOI == "TRUE", paste("SolarRadiation_summaries_AOI_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste("SolarRadiation_summaries_trial_", dataSource, ".RDS", sep=""))
  
   saveRDS(object = SolarRadiation_points, file=paste(pathOut1, fname_SR, sep="/"))
   saveRDS(object = SolarRadiation_points, file=paste(pathOut2, fname_SR, sep="/"))
@@ -396,7 +395,6 @@ get_SolarRadiation_pointSummarydata <- function(country, useCaseName, Crop, AOI 
 #' @param Planting_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual planting date is be used so no need to change the default value
 #' @param Harvest_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual harvest date is be used so no need to change the default value
 #' @param jobs defines how many cores to use for parallel data sourcing
-#' @param season used to formulate a file name and is useful when data for different seasons is needed 
 #' @param dataSource is one of c("chirts", "AgEra")
 #' @param ID only when AOI  = FALSE, it is the column name Identifying the trial ID in compiled_fieldData.RDS
 #' 
@@ -409,10 +407,10 @@ get_SolarRadiation_pointSummarydata <- function(country, useCaseName, Crop, AOI 
 #' 
 #' @examples: get_SolarRadiation_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE, overwrite = TRUE,
 #'             Planting_month_date = "07-01",  Harvest_month_date = "11-30", 
-#'             jobs=10, season="season_1", dataSource = "AgEra")
+#'             jobs=10,  dataSource = "AgEra")
 get_SolarRadiation_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
                                Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                               jobs = 10, season="season_1", dataSource, ID){
+                               jobs = 10, dataSource, ID){
   
   if(dataSource == "chirts"){
     listRaster_SR <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/SolarRadiation/chirts", pattern=".nc$", full.names = TRUE)
@@ -626,7 +624,7 @@ get_SolarRadiation_pointData <- function(country, useCaseName, Crop, AOI = FALSE
   Planting_month_date <- gsub("-", "_", Planting_month_date)
   
   
-  fname_SR <- ifelse(AOI == "TRUE", paste("SolarRadiation_pointData_AOI_", season,"_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste("SolarRadiation_pointData_trial_", dataSource, ".RDS", sep=""))
+  fname_SR <- ifelse(AOI == "TRUE", paste("SolarRadiation_pointData_AOI_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste("SolarRadiation_pointData_trial_", dataSource, ".RDS", sep=""))
   
   saveRDS(object = SolarRadiation_points, file=paste(pathOut1, fname_SR, sep="/"))
   saveRDS(object = SolarRadiation_points, file=paste(pathOut2, fname_SR, sep="/"))

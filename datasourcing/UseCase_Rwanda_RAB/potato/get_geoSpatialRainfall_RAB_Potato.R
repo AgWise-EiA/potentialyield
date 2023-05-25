@@ -13,15 +13,29 @@ source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialRainfall.R")
 
 trial_point_Rf_CHIRPS <- get_rf_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE,
               overwrite = TRUE, Planting_month_date = NULL, Harvest_month_date = NULL, jobs=10, 
-              season=NULL, dataSource = "CHIRPS", ID = "TLID")
+              dataSource = "CHIRPS", ID = "TLID")
 
 
 trial_point_Rf_AgEra <- get_rf_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE,
                                           overwrite = TRUE, Planting_month_date = NULL, Harvest_month_date = NULL, jobs=10, 
-                                          season=NULL, dataSource = "AgEra", ID = "TLID")
+                                          dataSource = "AgEra", ID = "TLID")
 
 
-              
+#################################################################################################################
+## get rainfall data ready for crop models
+## for trial locations from CHIRPS and AgEra
+#################################################################################################################
+Rain_4CM_AOI_CHIRPS <- get_rf_4CropModels(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = TRUE,
+                                          overwrite = TRUE, Planting_month_date = "02-05",  
+                                          Harvest_month_date = "06-05", jobs=10, dataSource = "CHIRPS", ID = NULL)
+
+
+Rain_4CM_trial_CHIRPS <- get_rf_4CropModels(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE,
+                                            overwrite = TRUE, Planting_month_date = NULL, Harvest_month_date = NULL, jobs=10, 
+                                            dataSource = "CHIRPS", ID = "TLID")
+
+
+
 
 #################################################################################################################
 ## get daily rainfall 
@@ -29,13 +43,14 @@ trial_point_Rf_AgEra <- get_rf_pointData(country = "Rwanda",  useCaseName = "RAB
 #################################################################################################################
 
 AOI_point_Rf_sameYear_p1  <- get_rf_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = TRUE,
-                         overwrite = TRUE, season="season1", Planting_month_date = "02-05",  
+                         overwrite = TRUE, Planting_month_date = "02-05",  
                          Harvest_month_date = "06-05", jobs=10, dataSource = "CHIRPS", ID = NULL)
 
 
-AOI_point_Rf_sameYear_p1  <- get_rf_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = TRUE,
-                                              overwrite = TRUE, season="season1", Planting_month_date = "02-05",  
+AOI_point_Rf_p2  <- get_rf_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = TRUE,
+                                              overwrite = TRUE, Planting_month_date = "02-05",  
                                               Harvest_month_date = "06-05", jobs=10, dataSource = "AgEra", ID = NULL)
+
 
 
 #################################################################################################################
@@ -43,13 +58,15 @@ AOI_point_Rf_sameYear_p1  <- get_rf_pointData(country = "Rwanda",  useCaseName =
 ## for trial locations from CHIRPS and AgEra
 #################################################################################################################
 Rain_summary_trialLoc_CHIRPS <- get_rf_pointSummarydata(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE, 
-                                                 overwrite = TRUE, season="NULL", Planting_month_date = NULL,
+                                                 overwrite = TRUE, Planting_month_date = NULL,
                                                  Harvest_month_date = NULL, jobs=10, dataSource = "CHIRPS", ID = "TLID")
 
 
 Rain_summary_trialLoc_AgEra <- get_rf_pointSummarydata(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE, 
-                                                 overwrite = TRUE, season="NULL", Planting_month_date = NULL,
+                                                 overwrite = TRUE,  Planting_month_date = NULL,
                                                  Harvest_month_date = NULL, jobs=10, dataSource = "AgEra", ID = "TLID")
+
+
 
 
 #################################################################################################################
@@ -58,12 +75,12 @@ Rain_summary_trialLoc_AgEra <- get_rf_pointSummarydata(country = "Rwanda",  useC
 #################################################################################################################
 
 Rain_AOI_summary_s1_p1_Ch <- get_rf_pointSummarydata(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = TRUE,
-                                            overwrite = TRUE, season="season1", Planting_month_date = "02-05",  
+                                            overwrite = TRUE,  Planting_month_date = "02-05",  
                                             Harvest_month_date = "06-05", jobs=10, dataSource = "CHIRPS", ID = NULL)
 
 
 Rain_AOI_summary_s1_p1_Ag <- get_rf_pointSummarydata(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = TRUE,
-                                                  overwrite = TRUE, season="season1", Planting_month_date = "02-05",  
+                                                  overwrite = TRUE, Planting_month_date = "02-05",  
                                                   Harvest_month_date = "06-05", jobs=10, dataSource = "AgEra", ID = NULL)
 
 #################################################################################################################
@@ -71,7 +88,7 @@ Rain_AOI_summary_s1_p1_Ag <- get_rf_pointSummarydata(country = "Rwanda",  useCas
 ## for Country from CHIRPS
 #################################################################################################################
 get_rf_rasterSummarydata(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = TRUE, overwrite = TRUE,
-                         season="season1", Planting_month_date = "02-05",  Harvest_month_date = "06-05", jobs=10,
+                         Planting_month_date = "02-05",  Harvest_month_date = "06-05", jobs=10,
                          dataSource = "CHIRPS", scenario=TRUE)
 
 
@@ -79,6 +96,4 @@ get_rf_rasterSummarydata(country = "Rwanda",  useCaseName = "RAB", Crop = "Potat
 
 
 
-
-source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialRainfall.R")
 

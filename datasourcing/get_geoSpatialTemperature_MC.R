@@ -172,7 +172,6 @@ summary_pointdata_temp <- function(rastLayer1= NULL, rastLayer2=NULL, gpsdata, p
 #' @param Planting_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual planting date is be used so no need to change the default value
 #' @param Harvest_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual harvest date is be used so no need to change the default value
 #' @param jobs defines how many cores to use for parallel data sourcing
-#' @param season used to formulate a file name and is useful when data for different seasons is needed 
 #' @param dataSource is among c("chirts", "AgEra")
 #' @param varName is used to rename the column names it assumes one the following values c("Tmax", "Tmin")
 #' 
@@ -184,10 +183,10 @@ summary_pointdata_temp <- function(rastLayer1= NULL, rastLayer2=NULL, gpsdata, p
 #'        tmax : Average tmax temperature between pl_Date and hv_Date
 #'        monthlyRF_x: total monthly TemperatureMax 
 #' @examples: get_temp_pointSummarydata(country = "Rwanda";  useCaseName = "RAB"; Crop = "Potato"; AOI = FALSE; overwrite = TRUE;
-#' season="season1";Planting_month_date = "07-01";  Harvest_month_date = "11-30"; jobs=10, varName = "Tmax", ID = "TLID")
+#' Planting_month_date = "07-01";  Harvest_month_date = "11-30"; jobs=10, varName = "Tmax", ID = "TLID")
 get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
                                          Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                                         jobs = 10, season=NULL, dataSource, varName, ID){
+                                         jobs = 10, dataSource, varName, ID){
   
   
  
@@ -404,7 +403,7 @@ get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, o
   # 4 Writting of output: Check if the directory exists
   Planting_month_date <- gsub("-", "_", Planting_month_date)
   
-  fname_Temp <- ifelse(AOI == "TRUE", paste(varName, "_summaries_AOI_", season,"_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste(varName, "_summaries_trial_", dataSource, ".RDS", sep=""))
+  fname_Temp <- ifelse(AOI == "TRUE", paste(varName, "_summaries_AOI_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste(varName, "_summaries_trial_", dataSource, ".RDS", sep=""))
  
   saveRDS(object = Temperature_points, file=paste(pathOut1, fname_Temp, sep="/"))
   saveRDS(object = Temperature_points, file=paste(pathOut2, fname_Temp, sep="/"))
@@ -437,7 +436,6 @@ get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, o
 #' @param Planting_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual planting date is be used so no need to change the default value
 #' @param Harvest_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual harvest date is be used so no need to change the default value
 #' @param jobs defines how many cores to use for parallel data sourcing
-#' @param season used to formulate a file name and is useful when data for different seasons is needed 
 #' @param dataSource is one of c("chirts", "AgEra")
 #' @param varName is used to rename the column names it assumes one the following values c("Tmax", "Tmin")
 #' @param ID only when AOI  = FALSE, it is the column name Identifying the trial ID in compiled_fieldData.RDS
@@ -451,10 +449,10 @@ get_temp_pointSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, o
 #' 
 #' @examples: get_temp_pointData(country = "Rwanda",  useCaseName = "RAB", Crop = "Potato", AOI = FALSE, overwrite = TRUE,
 #'             Planting_month_date = "07-01",  Harvest_month_date = "11-30", 
-#'             jobs=10, season="season_1", dataSource = "AgEra", varName = "Tmax")
+#'             jobs=10, dataSource = "AgEra", varName = "Tmax")
 get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
                                Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                               jobs = 10, season="season_1", dataSource, varName = NULL, ID = NULL){
+                               jobs = 10, dataSource, varName = NULL, ID = NULL){
   
   if(dataSource == "chirts" & varName == "Tmax"){
     listRaster_temp <-list.files(path="/home/jovyan/agwise/AgWise_Data/data_sourcing/Global_GeoData/Landing/TemperatureMax/chirts", pattern=".nc$", full.names = TRUE)
@@ -674,7 +672,7 @@ get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrit
   Planting_month_date <- gsub("-", "_", Planting_month_date)
   
   
-  fname_temp <- ifelse(AOI == "TRUE", paste(varName, "_pointData_AOI_", season,"_" ,Planting_month_date, "_", dataSource, ".RDS",sep=""), paste(varName,"_pointData_trial_", dataSource, ".RDS", sep=""))
+  fname_temp <- ifelse(AOI == "TRUE", paste(varName, "_pointData_AOI_",Planting_month_date, "_", dataSource, ".RDS",sep=""), paste(varName,"_pointData_trial_", dataSource, ".RDS", sep=""))
   
   saveRDS(object = Temperature_points, file=paste(pathOut1, fname_temp, sep="/"))
   saveRDS(object = Temperature_points, file=paste(pathOut2, fname_temp, sep="/"))
@@ -702,7 +700,6 @@ get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrit
 #' @param Planting_month_date should be provided as month_date
 #' @param Harvest_month_date should be provided as month_date
 #' @param jobs defines how many cores to use for parallel data sourcing
-#' @param season used to formulate a file name and is useful when data for different seasons is needed 
 #' @param dataSource is among c("chirst", "AgEra")
 #' 
 #' @return a raster layer corresponding to the temperature (Min and Max) for each year + if scenario = TRUE, the corresponding 3 scenarios (below, average, above) #' 
@@ -710,10 +707,10 @@ get_temp_pointData <- function(country, useCaseName, Crop, AOI = FALSE, overwrit
 #'        tmax : Average tmax temperature between pl_Date and hv_Date
 #
 #' @examples: get_tp_rasterSummarydata(country = "Rwanda";  useCaseName = "RAB"; Crop = "Potato"; AOI = FALSE; overwrite = TRUE;
-#' season="season1";Planting_month_date = "07-01";  Harvest_month_date = "11-30";jobs=10, dataSource = "AgEra", scenario=TRUE)
+#' Planting_month_date = "07-01";  Harvest_month_date = "11-30";jobs=10, dataSource = "AgEra", scenario=TRUE)
 get_tp_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, overwrite = FALSE, 
                                      Planting_month_date = "02-01", Harvest_month_date = "05-30", 
-                                     jobs = 10, season="season_1", dataSource, scenario=TRUE) {
+                                     jobs = 10, dataSource, scenario=TRUE) {
   
   # 6.1. Initialization of input and output data ####
   
@@ -797,7 +794,7 @@ get_tp_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ov
       names(tp_summary) <- c("tmax", "tmin")
       
       Planting_month_date2 <- gsub("-", "_", Planting_month_date)
-      fname_temp <- ifelse(AOI == "TRUE", paste("Temperature_Raster_summaries_AOI_", season,"_" ,Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i], ".tif",sep=""), paste("Temperature_Raster_summaries_Country_", season,"_" ,Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i],".tif", sep=""))
+      fname_temp <- ifelse(AOI == "TRUE", paste("Temperature_Raster_summaries_AOI_" ,Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i], ".tif",sep=""), paste("Temperature_Raster_summaries_Country_",Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i],".tif", sep=""))
       terra::writeRaster(tp_summary, paste(pathOut1, fname_temp, sep="/"), filetype="GTiff", overwrite=overwrite)
       
     }
@@ -836,7 +833,7 @@ get_tp_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ov
       names(tp_summary) <- c("tmax", "tmin")
       
       Planting_month_date2 <- gsub("-", "_", Planting_month_date)
-      fname_temp <- ifelse(AOI == "TRUE", paste("Temperature_Raster_summaries_AOI_", season,"_" ,Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i], ".tif",sep=""), paste("Temperature_Raster_summaries_Country_", season,"_" ,Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i],".tif", sep=""))
+      fname_temp <- ifelse(AOI == "TRUE", paste("Temperature_Raster_summaries_AOI_" ,Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i], ".tif",sep=""), paste("Temperature_Raster_summaries_Country_" ,Planting_month_date2, "_", dataSource,"_", listYear_AgERA[i],".tif", sep=""))
       terra::writeRaster(tp_summary, paste(pathOut1, fname_temp, sep="/"), filetype="GTiff", overwrite=overwrite)
       
     }
@@ -847,10 +844,10 @@ get_tp_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ov
   
   # Define the list of summary rasters to use to compute the scenario
   if (AOI == FALSE & scenario == TRUE){
-    listRaster_summary <- list.files(path=pathOut1, pattern=paste("Temperature_Raster_summaries_Country_", season,"_" ,Planting_month_date2, "_", dataSource, sep=""), full.names=T)
+    listRaster_summary <- list.files(path=pathOut1, pattern=paste("Temperature_Raster_summaries_Country_",Planting_month_date2, "_", dataSource, sep=""), full.names=T)
   }
   if (AOI == TRUE & scenario == TRUE) {
-    listRaster_summary <- list.files(path=pathOut1, pattern=paste("Temperature_Raster_summaries_AOI_", season,"_" ,Planting_month_date2, "_", dataSource, sep=""), full.names=T)
+    listRaster_summary <- list.files(path=pathOut1, pattern=paste("Temperature_Raster_summaries_AOI_" ,Planting_month_date2, "_", dataSource, sep=""), full.names=T)
   }
   
   ## 6.3.1. Loop on all temperature paramaters ####
@@ -894,7 +891,7 @@ get_tp_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ov
   }
   
   ## 6.3.2. Write the output
-  fname_scenario <- ifelse(AOI == "TRUE", paste("Temperature_Raster_scenario_AOI_", season,"_" ,Planting_month_date2, "_", dataSource, ".tif",sep=""), paste("Temperature_Raster_scenario_Country_", season,"_" ,Planting_month_date2, "_", dataSource,".tif", sep=""))
+  fname_scenario <- ifelse(AOI == "TRUE", paste("Temperature_Raster_scenario_AOI_",Planting_month_date2, "_", dataSource, ".tif",sep=""), paste("Temperature_Raster_scenario_Country_" ,Planting_month_date2, "_", dataSource,".tif", sep=""))
   
   # Below
   terra::writeRaster(below, paste(pathOut1, paste0("Below_",fname_scenario), sep="/"), filetype="GTiff", overwrite=overwrite)
@@ -906,3 +903,5 @@ get_tp_rasterSummarydata <- function(country, useCaseName, Crop, AOI = FALSE, ov
 }
 
 
+
+    
