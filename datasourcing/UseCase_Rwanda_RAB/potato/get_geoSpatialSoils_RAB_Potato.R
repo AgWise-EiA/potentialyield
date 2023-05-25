@@ -3,8 +3,8 @@
 #################################################################################################################
 ## source "get_geo-SpatialSoils.R" function and execute it for Rwanda RAB use case
 #################################################################################################################
-source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialSoils.R")
-
+#source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialSoils.R")
+source("~/agwise-datasourcing/dataops/datasourcing/get_geoSpatialSoils.R")
 
 #################################################################################################################
 ## choose data source and crop the global layers to the target country shape file. 

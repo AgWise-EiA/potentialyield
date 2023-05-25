@@ -3,9 +3,9 @@
 #################################################################################################################
 ## source "get_rain_temp_summary.R" function and get rain and Relative Humidity summary data 
 #################################################################################################################
-source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialData_4CropModels.R")
+#source("~/agwise/AgWise_Scripts/data_sourcing/get_geoSpatialData_4CropModels.R")
 
-
+source("~/agwise-datasourcing/dataops/datasourcing/get_geoSpatialData_4CropModels.R")
 
 #################################################################################################################
 ## get geo-spatial data for the AOI sites: data in the format crop models can use
