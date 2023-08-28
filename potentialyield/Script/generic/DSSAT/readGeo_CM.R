@@ -227,60 +227,60 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
 #' @param useCaseName use case name  name
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
 #' @param AOI True if the data is required for target area, and false if it is for trial sites
+#' @param season when data is needed for more than one season, this needs to be provided to be used in the file name
 #' @param Planting_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual planting date is be used so no need to change the default value
-#'
+#' @param Harvest_month_date if AOI is TRUE, Harvest_month_date should be provided in mm-dd format.  weather data across years between Planting_month_date and Harvest_month_date will be provided
+#' @param plantingWindow number of weeks starting considering the Planting_month_date as earliest planting week. It is given when several planting dates are to be tested to determine optimal planting date and it should be given in  
+
 #' @return
 #' @export
 #'
 #' @examples readGeo_CM(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = FALSE,  Planting_month_date = NULL)
-readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, Planting_month_date=NULL,jobs=10){
+readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, Planting_month_date=NULL, Harvest_month_date=NULL, season=NULL, plantingWindow=1, jobs=10){
   
-  pathIn <- paste("~/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_", useCaseName,"/", Crop, "/raw/profile/", sep="")
-  
-  
+  pathIn <- paste("~/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_", useCaseName,"/", Crop, "/raw/geo_4cropModel/", sep="")
   if(AOI == TRUE){
-    Rainfall <- readRDS(paste(pathIn, "Rainfall_4CM_AOI_", Planting_month_date, "_CHIRPS.RDS", sep=""))
-    SolarRadiation <- readRDS(paste(pathIn, "SolarRadiation_4CM_AOI_", Planting_month_date, "_AgEra.RDS", sep=""))
-    TemperatureMax <- readRDS(paste(pathIn, "TemperatureMax_4CM_AOI_", Planting_month_date, "_AgEra.RDS", sep=""))
-    Temperaturemin <- readRDS(paste(pathIn, "TemperatureMin_4CM_AOI_", Planting_month_date, "_AgEra.RDS", sep=""))
-    Soil <- readRDS(paste(pathIn, "SoilDEM_PointData_AOI.RDS", sep=""))
+    if(is.null(Planting_month_date) | is.null(Harvest_month_date)| is.null(season)){
+      print("with AOI=TRUE, Planting_month_date, Harvest_month_date and season can not be null, please refer to the documentation and provide values for those parameters")
+      return(NULL)
+    }
+    Rainfall <- readRDS(paste(pathIn, "Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
+    SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_Season_", season, "_PointData_AOI.RDS", sep=""))
+    TemperatureMax <- readRDS(paste(pathIn, "temperatureMax_Season_", season, "_PointData_AOI.RDS", sep=""))
+    TemperatureMin <- readRDS(paste(pathIn, "temperatureMin_Season_", season, "_PointData_AOI.RDS", sep=""))
+    RelativeHum <- readRDS(paste(pathIn, "relativeHumidity_Season_", season, "_PointData_AOI.RDS", sep=""))
+    Soil <- readRDS(paste(pathIn,"SoilDEM_PointData_AOI_profile.RDS", sep=""))
   }else{
     Rainfall <- readRDS(paste(pathIn, "Rainfall_PointData_trial.RDS", sep=""))
     SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_PointData_trial.RDS", sep=""))
     TemperatureMax <- readRDS(paste(pathIn, "temperatureMax_PointData_trial.RDS", sep=""))
     TemperatureMin <- readRDS(paste(pathIn, "temperatureMin_PointData_trial.RDS", sep=""))
     RelativeHum <- readRDS(paste(pathIn, "relativeHumidity_PointData_trial.RDS", sep=""))
-    Soil <- readRDS(paste(pathIn, "SoilDEM_PointData_trial.RDS", sep=""))
-    
+    Soil <- readRDS(paste(pathIn, "SoilDEM_PointData_trial_profile.RDS", sep=""))
   }
   names(Soil)[names(Soil)=="lat"] <- "latitude"
   names(Soil)[names(Soil)=="lon"] <- "longitude"
   
-  metaDataWeather <- as.data.frame(Rainfall[,1:11])
+  metaDataWeather <- as.data.frame(Rainfall[,1:6])
   metaData_Soil <-Soil[,c("longitude", "latitude","NAME_1","NAME_2")]
   
   
   metaData <- merge(metaDataWeather,metaData_Soil)
-  metaData <- arrange(metaData, ID)
+
   
   #Keep all the soil data with rainfall data
   Soil <- merge(metaData,Soil)
-  Soil <- arrange(Soil, ID)
+
   
   #Keep all the weather data that has soil data
   Rainfall <- merge(metaData,Rainfall)
-  Rainfall <- arrange(Rainfall, ID)
   SolarRadiation <- merge(metaData,SolarRadiation)
-  SolarRadiation <- arrange(SolarRadiation,ID)
   TemperatureMax <- merge(metaData,TemperatureMax)
-  TemperatureMax <- arrange(TemperatureMax,ID)
   TemperatureMin <- merge(metaData,TemperatureMin)
-  TemperatureMin <- arrange(TemperatureMin,ID)
   RelativeHum <- merge(metaData,RelativeHum)
-  RelativeHum <- arrange(RelativeHum,ID)
   
   Rainfall <- pivot_longer(Rainfall, 
-                           cols=-1:-11,
+                           cols=-1:-6,
                            names_to = c("Variable", "Date"),  
                            names_sep = "_",  
                            values_to = "RAIN") 

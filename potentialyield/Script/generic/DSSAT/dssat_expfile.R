@@ -45,11 +45,9 @@ create_filex <-function(i){
 #' @examples dssat.expfile(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = FALSE, filex_temp="MZRL8142.MZX", Planting_month_date = NULL,jobs=10)
 
 
-dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp="MZRM8143.MZX", Planting_month_date=NULL,Harvest_month_date=NULL,jobs=10, ID="TLID"){  #xmin,xmax,ymin,ymax,res,jobs,ex.name,path.to.extdata){
-
-  # Input point data AOI / Trial
+dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp="MZRM8143.MZX", Planting_month_date=NULL,Harvest_month_date=NULL,jobs=10, ID="TLID", plantingWindow=NULL){  #xmin,xmax,ymin,ymax,res,jobs,ex.name,path.to.extdata){
   if(AOI == TRUE){
-    # countryCoord <- readRDS(paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_",useCaseName, "/", Crop, "/raw/AOI_GPS.RDS", sep=""))
+    
     countryCoord <- readRDS(paste("~/agwise-datacuration/dataops/datacuration/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/AOI_GPS.RDS", sep=""))
     
     countryCoord <- unique(countryCoord[, c("longitude", "latitude")])
