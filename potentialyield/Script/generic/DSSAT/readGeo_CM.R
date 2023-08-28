@@ -84,20 +84,99 @@ slu1 <- function(clay1,sand1) {
 #'
 #' @examples process_grid_element(1)
 
-process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxdata,Tmindata,Sraddata,Rainfalldata,RelativeHum,coords,Soil) {
+process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxdata,Tmindata,Sraddata,Rainfalldata,RelativeHum,coords,Soil,AOI) {
 
-  if (!dir.exists(file.path(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")))){
-    dir.create(file.path(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")), recursive = TRUE)
+  if(AOI==TRUE){
+    if (!dir.exists(file.path(paste(path.to.extdata,"AOI",paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")))){
+      dir.create(file.path(paste(path.to.extdata,"AOI",paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")), recursive = TRUE)
+    }
+    setwd(paste(path.to.extdata,"AOI",paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
+    
+  }else{
+    if (!dir.exists(file.path(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")))){
+      dir.create(file.path(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")), recursive = TRUE)
+    }
+    setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
   }
-  setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
+  Tmaxdata <- Tmaxdata[Tmaxdata$longitude==coords$longitude[i] & Tmaxdata$latitude==coords$latitude[i],]
+  Tmindata <- Tmindata[Tmindata$longitude==coords$longitude[i] & Tmindata$latitude==coords$latitude[i],]
+  Sraddata <- Sraddata[Sraddata$longitude==coords$longitude[i] & Sraddata$latitude==coords$latitude[i],]
+  Rainfalldata <- Rainfalldata[Rainfalldata$longitude==coords$longitude[i] & Rainfalldata$latitude==coords$latitude[i],] 
+  RelativeHum <- RelativeHum[RelativeHum$longitude==coords$longitude[i] & RelativeHum$latitude==coords$latitude[i],] 
+
   
-  Tmaxdata <- Tmaxdata[Tmaxdata$ID==coords$ID[i],]
-  Tmindata <- Tmindata[Tmindata$ID==coords$ID[i],]
-  Sraddata <- Sraddata[Sraddata$ID==coords$ID[i],]
-  Rainfalldata <- Rainfalldata[Rainfalldata$ID==coords$ID[i],] 
-  RelativeHum <- RelativeHum[RelativeHum$ID==coords$ID[i],] 
-  
-  tst <-merge(Tmaxdata, merge(Tmindata,merge(Sraddata,merge(Rainfalldata,RelativeHum))))
+  if(AOI == TRUE){
+    Rainfalldata <- pivot_longer(Rainfalldata, 
+                             cols=-1:-6,
+                             names_to = c("Variable", "Date"),  
+                             names_sep = "_",  
+                             values_to = "RAIN") 
+    Rainfalldata <-unique(select(Rainfalldata,-c(Variable,startingDate, endDate)))
+    
+    Sraddata <- pivot_longer(Sraddata, 
+                                   cols=-1:-6,
+                                   names_to = c("Variable", "Date"),  
+                                   names_sep = "_",  
+                                   values_to = "SRAD") 
+    Sraddata <-unique(select(Sraddata,-c(Variable,startingDate, endDate)))
+    
+    Tmaxdata <- pivot_longer(Tmaxdata, 
+                                   cols=-1:-6,
+                                   names_to = c("Variable", "Date"),  
+                                   names_sep = "_",  
+                                   values_to = "TMAX") 
+    Tmaxdata <-unique(select(Tmaxdata,-c(Variable,startingDate, endDate)))
+    
+    Tmindata <- pivot_longer(Tmindata, 
+                                   cols=-1:-6,
+                                   names_to = c("Variable", "Date"),  
+                                   names_sep = "_",  
+                                   values_to = "TMIN") 
+    Tmindata <-unique(select(Tmindata,-c(Variable,startingDate, endDate)))
+    
+    RelativeHum <- pivot_longer(RelativeHum, 
+                                cols=-1:-6,
+                                names_to = c("Variable", "Date"),  
+                                names_sep = "_",  
+                                values_to = "RHUM") 
+    RelativeHum <-unique(select(RelativeHum,-c(Variable,startingDate, endDate)))
+  }else{
+    Rainfalldata <- pivot_longer(Rainfalldata, 
+                             cols=-1:-11,
+                             names_to = c("Variable", "Date"),  
+                             names_sep = "_",  
+                             values_to = "RAIN") 
+    Rainfalldata <-select(Rainfalldata,-Variable)
+    
+    Sraddata <- pivot_longer(Sraddata, 
+                                   cols=-1:-11,
+                                   names_to = c("Variable", "Date"),  
+                                   names_sep = "_",  
+                                   values_to = "SRAD") 
+    Sraddata <-select(Sraddata,-Variable)
+    
+    Tmaxdata <- pivot_longer(Tmaxdata, 
+                                   cols=-1:-11,
+                                   names_to = c("Variable", "Date"),  
+                                   names_sep = "_",  
+                                   values_to = "TMAX") 
+    Tmaxdata <-select(Tmaxdata,-Variable)
+    
+    Tmindata <- pivot_longer(Tmindata, 
+                                   cols=-1:-11,
+                                   names_to = c("Variable", "Date"),  
+                                   names_sep = "_",  
+                                   values_to = "TMIN") 
+    Tmindata <-select(Tmindata,-Variable)
+    
+    RelativeHum <- pivot_longer(RelativeHum, 
+                                cols=-1:-11,
+                                names_to = c("Variable", "Date"),  
+                                names_sep = "_",  
+                                values_to = "RHUM") 
+    RelativeHum <-select(RelativeHum,-Variable)
+  }
+  tst <-na.omit(merge(Tmaxdata, merge(Tmindata,merge(Sraddata,merge(Rainfalldata,RelativeHum)))))
   tst$DATE <- as.POSIXct(tst$Date, format = "%Y-%m-%d", tz = "UTC")
   tst <- select(tst,c(DATE,TMAX,TMIN,SRAD,RAIN,RHUM))
   tst  <- mutate(tst , across(c(TMAX,TMIN,SRAD,RAIN,RHUM), as.numeric))
@@ -146,19 +225,19 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
   ##########################################
   # Get soil ISRIC data from server
   Depth<-c(5,15,30,60,100,200)
-  LL15 <-as.numeric(Soil[Soil$ID==coords$ID[i],c("PWP_0-5cm","PWP_5-15cm","PWP_15-30cm","PWP_30-60cm","PWP_60-100cm","PWP_100-200cm")])
-  DUL  <-as.numeric(Soil[Soil$ID==coords$ID[i],c("FC_0-5cm","FC_5-15cm","FC_15-30cm","FC_30-60cm","FC_60-100cm","FC_100-200cm")])
-  SAT  <-as.numeric(Soil[Soil$ID==coords$ID[i],c("SWS_0-5cm","SWS_5-15cm","SWS_15-30cm","SWS_30-60cm","SWS_60-100cm","SWS_100-200cm")])
-  SKS  <-as.numeric(Soil[Soil$ID==coords$ID[i],c("KS_0-5cm","KS_5-15cm","KS_15-30cm","KS_30-60cm","KS_60-100cm","KS_100-200cm")])
+  LL15 <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("PWP_0-5cm","PWP_5-15cm","PWP_15-30cm","PWP_30-60cm","PWP_60-100cm","PWP_100-200cm")])
+  DUL  <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("FC_0-5cm","FC_5-15cm","FC_15-30cm","FC_30-60cm","FC_60-100cm","FC_100-200cm")])
+  SAT  <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("SWS_0-5cm","SWS_5-15cm","SWS_15-30cm","SWS_30-60cm","SWS_60-100cm","SWS_100-200cm")])
+  SKS  <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("KS_0-5cm","KS_5-15cm","KS_15-30cm","KS_30-60cm","KS_60-100cm","KS_100-200cm")])
   SSS  <-round(as.numeric(SKS), digits = 1)
-  BDM  <- as.numeric(Soil[Soil$ID==coords$ID[i],c("bdod_0-5cm","bdod_5-15cm","bdod_15-30cm","bdod_30-60cm","bdod_60-100cm","bdod_100-200cm")])
-  LOC  <- as.numeric((Soil[Soil$ID==coords$ID[i],c("soc_0-5cm","soc_5-15cm","soc_15-30cm","soc_30-60cm","soc_60-100cm","soc_100-200cm")])/10)
-  LCL  <- as.numeric(Soil[Soil$ID==coords$ID[i],c("clay_0-5cm","clay_5-15cm","clay_15-30cm","clay_30-60cm","clay_60-100cm","clay_100-200cm")])
-  LSI  <- as.numeric(Soil[Soil$ID==coords$ID[i],c("silt_0-5cm","silt_5-15cm","silt_15-30cm","silt_30-60cm","silt_60-100cm","silt_100-200cm")])
-  LNI  <- c(as.numeric((Soil[Soil$ID==coords$ID[i],c("nitrogen_0-5cm","nitrogen_5-15cm","nitrogen_15-30cm","nitrogen_30-60cm","nitrogen_60-100cm","nitrogen_100-200cm")])/10))
-  LHW  <- as.numeric(Soil[Soil$ID==coords$ID[i],c("phh2o_0-5cm","phh2o_5-15cm","phh2o_15-30cm","phh2o_30-60cm","phh2o_60-100cm","phh2o_100-200cm")])
-  LDR <- as.numeric(Soil[Soil$ID==coords$ID[i],c("LDR")])
-  CEC <- as.numeric(Soil[Soil$ID==coords$ID[i],c("cec_0-5cm","cec_5-15cm","cec_15-30cm","cec_30-60cm","cec_60-100cm","cec_100-200cm")])
+  BDM  <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("bdod_0-5cm","bdod_5-15cm","bdod_15-30cm","bdod_30-60cm","bdod_60-100cm","bdod_100-200cm")])
+  LOC  <- as.numeric((Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("soc_0-5cm","soc_5-15cm","soc_15-30cm","soc_30-60cm","soc_60-100cm","soc_100-200cm")])/10)
+  LCL  <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("clay_0-5cm","clay_5-15cm","clay_15-30cm","clay_30-60cm","clay_60-100cm","clay_100-200cm")])
+  LSI  <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("silt_0-5cm","silt_5-15cm","silt_15-30cm","silt_30-60cm","silt_60-100cm","silt_100-200cm")])
+  LNI  <- c(as.numeric((Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("nitrogen_0-5cm","nitrogen_5-15cm","nitrogen_15-30cm","nitrogen_30-60cm","nitrogen_60-100cm","nitrogen_100-200cm")])/10))
+  LHW  <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("phh2o_0-5cm","phh2o_5-15cm","phh2o_15-30cm","phh2o_30-60cm","phh2o_60-100cm","phh2o_100-200cm")])
+  LDR <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("LDR")])
+  CEC <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("cec_0-5cm","cec_5-15cm","cec_15-30cm","cec_30-60cm","cec_60-100cm","cec_100-200cm")])
   
   
   ##### Runoff curve no. [Soil Conservation Service/NRCS] #####
@@ -180,7 +259,7 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
   texture_soil <- textureClasses_sum[wtc]
   
   
-  SLU <- slu1(Soil[Soil$ID==coords$ID[i],c("clay_0-5cm")],Soil[Soil$ID==coords$ID[i],c("sand_0-5cm")])
+  SLU <- slu1(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("clay_0-5cm")],Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("sand_0-5cm")])
   
   #Soil root growth factor. Based on formula from DSSAT. Maybe not the best option for soils with duripan or other root growth limitations
   layer_center <- c(Depth[1]/2, (Depth[-1] - Depth[-length(Depth)]) / 2 + Depth[-length(Depth)])
@@ -194,10 +273,10 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
            SOURCE = "ISRIC V2",
            TEXTURE = texture_soil,
            DESCRIPTION = texture,
-           SITE= substr(Soil[Soil$ID==coords$ID[i],c("NAME_2")],start=1,stop=6),
+           SITE= substr(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("NAME_2")],start=1,stop=6),
            COUNTRY = country,
-           LAT = as.numeric(Soil[Soil$ID==coords$ID[i],c("latitude")]),
-           LONG = as.numeric(Soil[Soil$ID==coords$ID[i],c("longitude")]),
+           LAT = as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("latitude")]),
+           LONG = as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("longitude")]),
            SALB = ALB,
            SLU1 = SLU,
            SLRO = LRO,
@@ -217,7 +296,6 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
            SCEC=CEC,
            SRGF =RGF)
   
-  setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
   DSSAT::write_sol(soilid, 'SOIL.SOL', append = FALSE)
 }
 
@@ -260,8 +338,13 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, Planting_month_d
   }
   names(Soil)[names(Soil)=="lat"] <- "latitude"
   names(Soil)[names(Soil)=="lon"] <- "longitude"
+  Soil <- na.omit(Soil)
   
-  metaDataWeather <- as.data.frame(Rainfall[,1:6])
+  if(AOI == TRUE){
+    metaDataWeather <- as.data.frame(Rainfall[,1:6])
+  }else{
+    metaDataWeather <- as.data.frame(Rainfall[,1:11])
+  }
   metaData_Soil <-Soil[,c("longitude", "latitude","NAME_1","NAME_2")]
   
   
@@ -269,7 +352,7 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, Planting_month_d
 
   
   #Keep all the soil data with rainfall data
-  Soil <- merge(metaData,Soil)
+  Soil <- merge(unique(metaData[,1:4]),Soil)
 
   
   #Keep all the weather data that has soil data
@@ -279,41 +362,7 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, Planting_month_d
   TemperatureMin <- merge(metaData,TemperatureMin)
   RelativeHum <- merge(metaData,RelativeHum)
   
-  Rainfall <- pivot_longer(Rainfall, 
-                           cols=-1:-6,
-                           names_to = c("Variable", "Date"),  
-                           names_sep = "_",  
-                           values_to = "RAIN") 
-  Rainfall <-select(Rainfall,-Variable)
-  
-  SolarRadiation <- pivot_longer(SolarRadiation, 
-                                 cols=-1:-11,
-                                 names_to = c("Variable", "Date"),  
-                                 names_sep = "_",  
-                                 values_to = "SRAD") 
-  SolarRadiation <-select(SolarRadiation,-Variable)
-  
-  TemperatureMax <- pivot_longer(TemperatureMax, 
-                                 cols=-1:-11,
-                                 names_to = c("Variable", "Date"),  
-                                 names_sep = "_",  
-                                 values_to = "TMAX") 
-  TemperatureMax <-select(TemperatureMax,-Variable)
-  
-  TemperatureMin <- pivot_longer(TemperatureMin, 
-                                 cols=-1:-11,
-                                 names_to = c("Variable", "Date"),  
-                                 names_sep = "_",  
-                                 values_to = "TMIN") 
-  TemperatureMin <-select(TemperatureMin,-Variable)
-  
-  RelativeHum <- pivot_longer(RelativeHum, 
-                              cols=-1:-11,
-                              names_to = c("Variable", "Date"),  
-                              names_sep = "_",  
-                              values_to = "RHUM") 
-  RelativeHum <-select(RelativeHum,-Variable)
-  
+ 
   #return(list(Rainfall, SolarRadiation, TemperatureMax, TemperatureMin,Soil,metaData))
   #cls <- parallel::makePSOCKcluster(jobs)
   #doParallel::registerDoParallel(cls)
@@ -330,14 +379,15 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, Planting_month_d
   }
   setwd(path.to.extdata)
   
-  #Bring data together
-  Tmaxdata <- TemperatureMax
-  Tmindata <- TemperatureMin
-  Sraddata <- SolarRadiation
-  Rainfalldata <- Rainfall
-  coords <- metaData
+
+  if(AOI==TRUE){
+    coords <- unique(metaData[,1:4])
+  }else{
+    coords <- metaData
+  }
+  
   grid <- as.matrix(coords)
 
   
-  results <- map(seq_along(grid[,7]), country=country,process_grid_element,path.to.extdata=path.to.extdata,path.to.temdata=path.to.temdata,Tmaxdata=Tmaxdata,Tmindata=Tmindata,Sraddata=Sraddata,Rainfalldata=Rainfalldata,RelativeHum=RelativeHum,coords=coords,Soil=Soil) %||% print("Progress:")
+  results <- map(seq_along(grid[,1]), process_grid_element,country=country,path.to.extdata=path.to.extdata,path.to.temdata=path.to.temdata,Tmaxdata=TemperatureMax,Tmindata=TemperatureMin,Sraddata=SolarRadiation,Rainfalldata=Rainfall,RelativeHum=RelativeHum,coords=coords,Soil=Soil, AOI=AOI) %||% print("Progress:")
 }
