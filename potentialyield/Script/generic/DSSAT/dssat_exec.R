@@ -1,5 +1,4 @@
 
-packages = c("tidyverse", "DSSAT")
 packages_required <- c("tidyverse", "DSSAT")
 
 # check and install packages that are not yet installed
@@ -19,17 +18,19 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #'
 #' @examples rundssat(1)
 
-rundssat <-function(i){
+rundssat <-function(i,path.to.extdata,TRT,AOI){
+
   setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0")), sep = "/"))
+
+  
   # Generate a DSSAT batch file using a tibble
-  options(DSSAT.CSM="sudo /opt/DSSAT/dscsm047")
+  options(DSSAT.CSM="/opt/DSSAT/v4.8.1.40/dscsm048")
   tibble(FILEX=paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.MZX'), TRTNO=TRT, RP=1, SQ=0, OP=0, CO=0) %>%
-    write_dssbatch()
+    write_dssbatch(file_name="DSSBatch.v48")
   # Run DSSAT-CSM
-  run_dssat(suppress_output = TRUE)
+  run_dssat(file_name="DSSBatch.v48",suppress_output = TRUE)
   # Change output file name
-  file.rename(list.files(pattern = "Summary.*", full.names = TRUE), paste0(path.to.extdata, '/', 'EXTE', formatC(width = 4, as.integer((i)), flag = "0"), '/', 'EXTE', formatC(width = 4, as.integer((i)), flag = "0"), '.OUT'))
-  setwd(path.to.extdata)
+  file.rename("Summary.OUT", paste0(path.to.extdata, '/', 'EXTE', formatC(width = 4, as.integer((i)), flag = "0"), '/', 'EXTE', formatC(width = 4, as.integer((i)), flag = "0"), '.OUT'))
   gc()
 }
 
@@ -48,7 +49,7 @@ rundssat <-function(i){
 #' @examples dssat.exec(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = FALSE, Planting_month_date = NULL,jobs=10,TRT=1:36)
 
 
-dssat.exec <- function(country, useCaseName, Crop, AOI = FALSE, Planting_month_date=NULL,jobs=10,TRT=1){  
+dssat.exec <- function(country, useCaseName, Crop, AOI = FALSE,TRT=1){  
   
   #require(doParallel)
   #require(foreach)
@@ -56,12 +57,17 @@ dssat.exec <- function(country, useCaseName, Crop, AOI = FALSE, Planting_month_d
   #cls <- parallel::makePSOCKcluster(jobs)
   #doParallel::registerDoParallel(cls)
   #Set working directory to save the results
-  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/DSSAT", sep="")
+  if (AOI==TRUE){
+    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/DSSAT/AOI", sep="")
+  }else{
+    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/DSSAT", sep="")
+  }
+  
   setwd(path.to.extdata)
   
   folders <- list.dirs(".", full.names = FALSE, recursive = FALSE)
   matching_folders <- folders[grepl("EXTE", folders, ignore.case = TRUE)]
   #foreach::foreach(i=seq_along(matching_folders), .export = '.GlobalEnv', .inorder = TRUE, .packages = c("tidyverse", "DSSAT")) %dopar% {
  
-  results <- map(seq_along(matching_folders), rundssat) %||% print("Progress:")
+  results <- map(seq_along(matching_folders), rundssat,path.to.extdata=path.to.extdata,TRT=TRT, AOI=AOI) %||% print("Progress:")
 }

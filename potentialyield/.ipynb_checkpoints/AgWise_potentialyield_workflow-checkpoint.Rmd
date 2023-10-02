@@ -1,0 +1,152 @@
+---
+title: "AgWise potential yield"
+output: html_document
+date: "2023-08-30"
+---
+
+
+### <span style="color:blue;"> **1. The data architecture**
+#### Potential yield in this case is referring to two major activities: 
+  - Production of **crop model inputs** from several models using different sources. 
+  - **Crop model outputs** from **several** models for both the trial and the area of interest (AOI).
+  
+<br>
+
+#### The AgWise potential yield script and outputs are hosted in:
+  - **agwise-potentialyield/dataops/potentialyield**
+  
+<br>
+
+#### Similar to the other AgWise modules, the potential yield module has a separate space for ** Data and Script**
+  - **agwise-potentialyield/dataops/potentialyield/Script** 
+  - **agwise-potentialyield/dataops/potentialyield/Data**
+
+<br>
+
+#### <span style="color:blue;"> **1.1 The Script** folder has two sub folders:
+
+  - **agwise-potentialyield/dataops/potentialyield/Script/generic**
+  - **agwise-potentialyield/dataops/potentialyield/Script/useCases** 
+
+<br>
+
+##### The generic folder contains generalized scripts while the instances of running the generic scripts for specific country, use case and crop combinations is host in the later. 
+##### In this system, for every country, use case and crop combinations, a unique folder is created to host all the data sourcing scripts run for it and this is implemented in a standard way across all AgWise modules. In addition, we add a crop model folder to keep the scripts for each model separated.  
+##### For example, scripts in ~/agwise-potentialyield/dataops/potentialyield/Script/useCases/UseCase_Rwanda_RAB/Maize/DSSAT are run to get model inputs and outputs for the DSSAT model in maize growing areas in Rwanda for RAB use case.
+
+ 
+<br>
+
+#### <span style="color:blue;"> **1.2 The Data** folder has usecase specific data:
+
+  - **agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB** 
+    - is an example for how folders are created for a specific use case. 
+  - A different folder per crop is created. For example, **agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Maize** is the folder with model inputs and outputs for maize growing areas in Rwanda for RAB use case.
+
+    
+ 
+   
+<br>
+##### When a use case is working with multiple crops, every crop will have its own folder, e.g., 
+
+   - ~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Maize
+   - ~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Potato
+   - ~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Rice
+   
+<br>
+##### <span style="color:red;"> **Note: data is stored only in CG Labs, never commit data to GitHub**
+<br>
+
+
+
+
+###############################################################################
+### <span style="color:green;"> **2. The data flow**
+
+##### In every AgWise module and for every country, use case, crop and crop model combinations, the following structure is used (shown with examples): 
+
+  - **Landing**   
+    - for data used as template to create the different model inputs (soil, weather and experimental data). They are saved in **Landing/<model>**. 
+    - e.g., agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Maize/Landing/DSSAT
+  - **raw**   
+    -The weather and soil inputs to run the models in R format are saved in the **raw/geo_4cropModel** folder. 
+    -e.g., agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Maize/raw/geo_4cropModel 
+  - **transform**
+    - contains intermediate results of processing data either in Landing or in raw.
+    - e.g., agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Maize/transform
+  - **result** 
+    - The model outputs are saved in the **Result/<model>**
+    -  e.g., agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Maize/result/DSSAT
+  
+<br>
+
+
+###############################################################################
+### <span style="color:magenta;"> **3. Steps to get potential yield using DSSAT**
+
+##### Obtaining weather, soil and experimental data in DSSAT format can be done only after getting the point based geo-spatial data following the data sourcing steps.
+<br>
+
+3.1. Make sure there is weather and soil data, planting and harvest dates for your target area and the data has the correct variables:
+  - for trial sites **<variable>_PointData_trial.RDS** is required in the correct folder, e.g., **~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Maize/raw/geo_4cropModel/Rainfall_PointData_trial.RDS**
+  - for AOI **<variable>_Season_<season number>_PointData_AOI.RDS** is required within the correct folder, e.g., **~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Maize/raw/geo_4cropModel/Rainfall_Season_1_PointData_AOI.RDS**
+  
+<br>
+3.2. Make sure the template soil, genotype (cultivar, ecotype and species) and experimental files are in the correct folder (e.g., agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Maize/Landing/DSSAT) 
+
+ <br> 
+3.3. Create a folder under agwise-potentialyield/dataops/potentialyield/Script/useCases .... In this folder you will have the scripts to execute crop modelling functions for your use case and crop combination 
+  - for example, **agwise-potentialyield/dataops/potentialyield/Script/useCases/UseCase_Rwanda_RAB/Maize/DSSAT**  (use the relevant useCase country usecaseName crop and model)
+  
+<br>
+3.4. Copy the script **get_CM_geo_RAB_Maize.R** from **agwise-potentialyield/dataops/potentialyield/Script/useCases/UseCase_Rwanda_RAB/Maize/DSSAT** to the folder you just created at step 3.3.
+  - this script sources **readGeo_CM.R** which is transforming the weather and soil data from R to DSSAT format.
+  
+<br>
+3.5.  Fill in the correct arguments in the script you copied, i.e., **get_CM_geo_RAB_Potato**  in your newly created folder:
+  - change the country, use case name, crop, planting dates, harvest dates, etc. For dipper understanding of the different arguments please refer to the documentation in readGeo_CM.R
+<br>
+3.6. Copy the script **run_DSSAT_RAB_Maize.R** from **agwise-potentialyield/dataops/potentialyield/Script/useCases/UseCase_Rwanda_RAB/Maize/DSSAT** to the folder you just created at step 3.3.
+  - this script sources:
+      - **dssat_expfile.R** creates the experimental file in DSSAT format modifying starting of simulation, initial conditions, planting and harvesting dates. 
+      - **dssat_exec.R** run DSSAT for all the folders with weather, soil and experimental data.
+      - **merge_DSSAT_output.R** it merges the yield results for all the locations in the use case and crop analyzed.
+  
+<br>
+3.7.  Fill in the correct arguments in the script you copied, i.e., **run_DSSAT_RAB_Potato**  in your newly created folder:
+  - change the country, use case name, crop, planting dates, harvest dates, etc. For dipper understanding of the different arguments please refer to the documentation in dssat_expfile.R, dssat_exec.R and merge_DSSAT_output.R 
+
+###############################################################################
+
+#### Making use of the generic function for specific use case is demonstrated below.
+
+
+
+```{r setup, include=TRUE}
+#################################################################################################################
+## Create experimental data in DSSAT format
+#################################################################################################################
+
+source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/dssat_expfile.R")
+expdata <- dssat.expfile(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = FALSE, filex_temp="MZRM8143.MZX", Planting_month_date = NULL,Harvest_month_date=NULL,jobs=10, ID="TLID",season =NULL, plantingWindow=NULL)
+
+expdata_AOI <- dssat.expfile(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = TRUE, filex_temp="MZRM8143.MZX", Planting_month_date="08-15", Harvest_month_date="03-31",jobs=10, ID="TLID",season =1, plantingWindow=4)
+
+#################################################################################################################
+## Run the DSSAT model
+#################################################################################################################
+
+source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/dssat_exec.R")
+execmodel <-dssat.exec(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = FALSE,TRT=1)
+execmodel_AOI <-dssat.exec(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = TRUE,TRT=1:5)
+
+#################################################################################################################
+## Merge results
+#################################################################################################################
+
+source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/merge_DSSAT_output.R")
+mergeresults <-merge_DSSAT_output(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize")
+
+```
+
+

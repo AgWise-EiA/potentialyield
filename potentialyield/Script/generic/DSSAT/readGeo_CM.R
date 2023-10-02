@@ -78,7 +78,18 @@ slu1 <- function(clay1,sand1) {
 
 #' Function that creates the soil and weather file for one location/folder
 #'
-#' @param i location/folder
+#' @param i last digits of the folder (folder ID)
+#' @param country country name
+#' @param path.to.extdata working directory to save the weather and soil data in DSSAT format
+#' @param path.to.temdata directory with template weather and soil data in DSSAT format
+#' @param Tmaxdata dataframe with the maximum data for all the locations
+#' @param Tmindata dataframe with the minimum temperature data for all the locations
+#' @param Sraddata dataframe with the solar radiation data for all the locations
+#' @param Rainfalldata dataframe with the rainfall data for all the locations
+#' @param RelativeHum dataframe with the relative humidity data for all the locations
+#' @param coords dataframe with the locations and metadata
+#' @param Soil dataframe with the soil data information
+#' @param AOI True if the data is required for target area, and false if it is for trial sites
 #' @return soil and weather file in DSSAT format
 #' @export
 #'
@@ -228,7 +239,7 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
   LL15 <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("PWP_0-5cm","PWP_5-15cm","PWP_15-30cm","PWP_30-60cm","PWP_60-100cm","PWP_100-200cm")])
   DUL  <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("FC_0-5cm","FC_5-15cm","FC_15-30cm","FC_30-60cm","FC_60-100cm","FC_100-200cm")])
   SAT  <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("SWS_0-5cm","SWS_5-15cm","SWS_15-30cm","SWS_30-60cm","SWS_60-100cm","SWS_100-200cm")])
-  SKS  <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("KS_0-5cm","KS_5-15cm","KS_15-30cm","KS_30-60cm","KS_60-100cm","KS_100-200cm")])
+  SKS  <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("KS_0-5cm","KS_5-15cm","KS_15-30cm","KS_30-60cm","KS_60-100cm","KS_100-200cm")])/10
   SSS  <-round(as.numeric(SKS), digits = 1)
   BDM  <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("bdod_0-5cm","bdod_5-15cm","bdod_15-30cm","bdod_30-60cm","bdod_60-100cm","bdod_100-200cm")])
   LOC  <- as.numeric((Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("soc_0-5cm","soc_5-15cm","soc_15-30cm","soc_30-60cm","soc_60-100cm","soc_100-200cm")])/10)
@@ -299,29 +310,22 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
   DSSAT::write_sol(soilid, 'SOIL.SOL', append = FALSE)
 }
 
-#' Reading the data for crop model
+#' Reading the weather and soil data for crop model and transforming it to DSSAT format 
 #'
 #' @param country country name
 #' @param useCaseName use case name  name
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
 #' @param AOI True if the data is required for target area, and false if it is for trial sites
 #' @param season when data is needed for more than one season, this needs to be provided to be used in the file name
-#' @param Planting_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual planting date is be used so no need to change the default value
-#' @param Harvest_month_date if AOI is TRUE, Harvest_month_date should be provided in mm-dd format.  weather data across years between Planting_month_date and Harvest_month_date will be provided
-#' @param plantingWindow number of weeks starting considering the Planting_month_date as earliest planting week. It is given when several planting dates are to be tested to determine optimal planting date and it should be given in  
 
-#' @return
+#' @return weather and soil data in DSSAT format
 #' @export
 #'
-#' @examples readGeo_CM(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = FALSE,  Planting_month_date = NULL)
-readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, Planting_month_date=NULL, Harvest_month_date=NULL, season=NULL, plantingWindow=1, jobs=10){
+#' @examples readGeo_CM(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = FALSE, season=1)
+readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, season=1){
   
   pathIn <- paste("~/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_", useCaseName,"/", Crop, "/raw/geo_4cropModel/", sep="")
   if(AOI == TRUE){
-    if(is.null(Planting_month_date) | is.null(Harvest_month_date)| is.null(season)){
-      print("with AOI=TRUE, Planting_month_date, Harvest_month_date and season can not be null, please refer to the documentation and provide values for those parameters")
-      return(NULL)
-    }
     Rainfall <- readRDS(paste(pathIn, "Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
     SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_Season_", season, "_PointData_AOI.RDS", sep=""))
     TemperatureMax <- readRDS(paste(pathIn, "temperatureMax_Season_", season, "_PointData_AOI.RDS", sep=""))
@@ -367,7 +371,7 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, Planting_month_d
   #cls <- parallel::makePSOCKcluster(jobs)
   #doParallel::registerDoParallel(cls)
   #Set working directory to save the results
-  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/DSSAT", sep="")
+  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT", sep="")
   
   #Define working directory with template data
   path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/Landing/DSSAT", sep="")
