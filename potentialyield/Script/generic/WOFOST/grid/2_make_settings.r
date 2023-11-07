@@ -1,9 +1,19 @@
 #directories
-aoidir<-"~/agwise-datasourcing/dataops/datasourcing/Data/useCase_Rwanda_RAB/Potato/Landing/AEZ"
-weatherdir<-"~/agwise-datasourcing/dataops/datasourcing/Data/useCase_Rwanda_RAB/Potato/result/geo_4cropModel"
+
+country <- "Rwanda"
+useCaseName <- "RAB"
+Crop <- "Potato"
+
+pathIn <- "~/agwise-datasourcing/dataops/datasourcing/Data/useCase_"
+pathOut <- "~/agwise-potentialyield/dataops/potentialyield/Data/useCase_"
+
+
+aoidir <- paste(pathIn, country, "_", useCaseName,"/", Crop, "/Landing/AEZ", sep="")
+weatherdir <- paste(pathIn, country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel", sep="")
 soildir<-weatherdir
-outdir1<-"~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Potato/result/WOFOST"
-outdir2<-paste("grid_out_yymmdd_", format(Sys.time(), "%y%m%d"), sep="_") #subdirectory (with date)
+outdir1 <- paste(pathOut, country, "_", useCaseName,"/", Crop, "/result/WOFOST", sep="")
+outdir2 <- paste("AOI_WOFOST_yymmdd_", format(Sys.time(), "%y%m%d"), sep="_")
+# outdir2 <- paste("grid_out_yymmdd_", format(Sys.time(), "%y%m%d"), sep="_") #subdirectory (with date)
 
 #files
 ##aoi files
@@ -52,7 +62,7 @@ tsum1<-200
 tsum2<-1700
 
 #years to include
-years<-2020:2022
+years<-2000:2022
 
 #specify four planting (p) and harvest (h) dates (months and day of month)
 phdates<-data.frame(pmonth=08, pday=c(8,15,22,30), hmonth=12, hday=c(8,15,22,30))

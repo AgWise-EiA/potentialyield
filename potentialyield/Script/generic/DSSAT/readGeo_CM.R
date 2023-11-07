@@ -72,10 +72,6 @@ slu1 <- function(clay1,sand1) {
 
 
 
-
-
-
-
 #' Function that creates the soil and weather file for one location/folder
 #'
 #' @param i last digits of the folder (folder ID)
@@ -118,35 +114,35 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
   
   if(AOI == TRUE){
     Rainfalldata <- pivot_longer(Rainfalldata, 
-                             cols=-1:-6,
+                             cols=-1:-7,
                              names_to = c("Variable", "Date"),  
                              names_sep = "_",  
                              values_to = "RAIN") 
     Rainfalldata <-unique(select(Rainfalldata,-c(Variable,startingDate, endDate)))
     
     Sraddata <- pivot_longer(Sraddata, 
-                                   cols=-1:-6,
+                                   cols=-1:-7,
                                    names_to = c("Variable", "Date"),  
                                    names_sep = "_",  
                                    values_to = "SRAD") 
     Sraddata <-unique(select(Sraddata,-c(Variable,startingDate, endDate)))
     
     Tmaxdata <- pivot_longer(Tmaxdata, 
-                                   cols=-1:-6,
+                                   cols=-1:-7,
                                    names_to = c("Variable", "Date"),  
                                    names_sep = "_",  
                                    values_to = "TMAX") 
     Tmaxdata <-unique(select(Tmaxdata,-c(Variable,startingDate, endDate)))
     
     Tmindata <- pivot_longer(Tmindata, 
-                                   cols=-1:-6,
+                                   cols=-1:-7,
                                    names_to = c("Variable", "Date"),  
                                    names_sep = "_",  
                                    values_to = "TMIN") 
     Tmindata <-unique(select(Tmindata,-c(Variable,startingDate, endDate)))
     
     RelativeHum <- pivot_longer(RelativeHum, 
-                                cols=-1:-6,
+                                cols=-1:-7,
                                 names_to = c("Variable", "Date"),  
                                 names_sep = "_",  
                                 values_to = "RHUM") 
@@ -187,26 +183,26 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
                                 values_to = "RHUM") 
     RelativeHum <-select(RelativeHum,-Variable)
   }
-  tst <-na.omit(merge(Tmaxdata, merge(Tmindata,merge(Sraddata,merge(Rainfalldata,RelativeHum)))))
+  tst <- na.omit(merge(Tmaxdata, merge(Tmindata,merge(Sraddata,merge(Rainfalldata,RelativeHum)))))
   tst$DATE <- as.POSIXct(tst$Date, format = "%Y-%m-%d", tz = "UTC")
   tst <- select(tst,c(DATE,TMAX,TMIN,SRAD,RAIN,RHUM))
   tst  <- mutate(tst , across(c(TMAX,TMIN,SRAD,RAIN,RHUM), as.numeric))
   
   # Calculate long-term average temperature (TAV)
   tav <- tst %>%
-    summarize(TAV=mean((TMAX+TMIN)/2,na.rm=T))
+    dplyr::summarise(TAV=mean((TMAX+TMIN)/2,na.rm=T))
   
   # Calculate monthly temperature amplitude (AMP)
   amp <- tst %>%
     # Extract month from DATE column
-    mutate(month = month(as.Date(tst$DATE,format = "%y%j"))) %>%
+    mutate(month = lubridate::month(as.Date(tst$DATE,format = "%y%j"))) %>%
     # Group data by month
     group_by(month) %>%
     # Calculate monthly means
-    summarize(monthly_avg = mean((TMAX+TMIN)/2,na.rm=T)) %>%
+    dplyr::summarise(monthly_avg = mean((TMAX+TMIN)/2,na.rm=T)) %>%
     # Calculate AMP as half the difference between minimum and
     #     maximum monthly temperature
-    summarize(AMP = (max(monthly_avg, na.rm=T)-min(monthly_avg,na.rm=T))/2)
+    dplyr::summarise(AMP = (max(monthly_avg, na.rm=T)-min(monthly_avg,na.rm=T))/2)
   
   
   #Get elevation
@@ -288,24 +284,24 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
            COUNTRY = country,
            LAT = as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("latitude")]),
            LONG = as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("longitude")]),
-           SALB = ALB,
-           SLU1 = SLU,
-           SLRO = LRO,
-           SLDR = LDR,
-           SLB = Depth,
-           SLMH = rep(-99,6), #No data about the master horizon
-           SLLL=LL15,
-           SSAT=SAT,
-           SDUL=DUL,
-           SSKS=SSS,
-           SBDM=BDM,
-           SLOC=LOC,
-           SLCL=LCL,
-           SLSI=LSI,
-           SLNI=LNI,
-           SLHW=LHW,
-           SCEC=CEC,
-           SRGF =RGF)
+           SALB = list(ALB),
+           SLU1 = list(SLU),
+           SLRO = list(LRO),
+           SLDR = list(LDR),
+           SLB = list(Depth),
+           SLMH = list(rep(-99,6)), #No data about the master horizon
+           SLLL=list(LL15),
+           SSAT=list(SAT),
+           SDUL=list(DUL),
+           SSKS=list(SSS),
+           SBDM=list(BDM),
+           SLOC=list(LOC),
+           SLCL=list(LCL),
+           SLSI=list(LSI),
+           SLNI=list(LNI),
+           SLHW=list(LHW),
+           SCEC=list(CEC),
+           SRGF =list(RGF))
   
   DSSAT::write_sol(soilid, 'SOIL.SOL', append = FALSE)
 }
@@ -345,7 +341,7 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, season=1){
   Soil <- na.omit(Soil)
   
   if(AOI == TRUE){
-    metaDataWeather <- as.data.frame(Rainfall[,1:6])
+    metaDataWeather <- as.data.frame(Rainfall[,1:7])
   }else{
     metaDataWeather <- as.data.frame(Rainfall[,1:11])
   }
@@ -356,7 +352,7 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, season=1){
 
   
   #Keep all the soil data with rainfall data
-  Soil <- merge(unique(metaData[,1:4]),Soil)
+  Soil <- merge(unique(metaData[,1:3]),Soil)
 
   
   #Keep all the weather data that has soil data
@@ -385,7 +381,7 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, season=1){
   
 
   if(AOI==TRUE){
-    coords <- unique(metaData[,1:4])
+    coords <- unique(metaData[,c("longitude","latitude")])
   }else{
     coords <- metaData
   }
@@ -393,5 +389,10 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, season=1){
   grid <- as.matrix(coords)
 
   
-  results <- map(seq_along(grid[,1]), process_grid_element,country=country,path.to.extdata=path.to.extdata,path.to.temdata=path.to.temdata,Tmaxdata=TemperatureMax,Tmindata=TemperatureMin,Sraddata=SolarRadiation,Rainfalldata=Rainfall,RelativeHum=RelativeHum,coords=coords,Soil=Soil, AOI=AOI) %||% print("Progress:")
+  # path.to.extdata=path.to.extdata; path.to.temdata=path.to.temdata; Tmaxdata=TemperatureMax; Tmindata=TemperatureMin; Sraddata=SolarRadiation;
+  # Rainfalldata=Rainfall; RelativeHum=RelativeHum
+  
+  results <- map(seq_along(grid[,1]), process_grid_element, country=country, path.to.extdata=path.to.extdata,
+                 path.to.temdata=path.to.temdata, Tmaxdata=TemperatureMax, Tmindata=TemperatureMin, Sraddata=SolarRadiation,
+                 Rainfalldata=Rainfall, RelativeHum=RelativeHum, coords=coords, Soil=Soil, AOI=AOI) %||% print("Progress:")
 }

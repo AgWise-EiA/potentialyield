@@ -1,7 +1,7 @@
 ## wofost modelling for trials
 # Do this: 
 # 1. Open script 2_make_settings.r and make all settings (paths etc)
-# 2. Open script 1_run_all and run it. It will source the other scripts
+# 2. Open script 1_run and run it. It will source the other scripts
 # 3. Check results in the specified output directory
 
 

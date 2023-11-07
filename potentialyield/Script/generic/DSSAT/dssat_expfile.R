@@ -27,7 +27,7 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #'
 #' @examples create_filex(1)
 
-create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI, code,plantingWindow,number_years){
+create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI, code,plantingWindow,number_years,ingenoid){
   setwd(path.to.temdata)
   
   #Read in original FileX
@@ -39,6 +39,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     file_x$FIELDS$WSTA<-paste0("WHTE", formatC(width = 4, as.integer((i)), flag = "0"))
     file_x$FIELDS$ID_SOIL<-paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))
     file_x$CULTIVARS$CR <- code
+    file_x$CULTIVARS$INGENO <- ingenoid
     ex_profile <- suppressWarnings(DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))))
     file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SDUL #Assume field capacity as initial condition
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
@@ -81,14 +82,14 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
   }else{
     setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
     #Make proposed changes to FileX
-    file_x$FIELDS$WSTA<-paste0("WHTE", formatC(width = 4, as.integer((i)), flag = "0"))
+    file_x$FIELDS$WSTA <- paste0("WHTE", formatC(width = 4, as.integer((i)), flag = "0"))
     file_x$FIELDS$ID_SOIL<-paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))
     file_x$CULTIVARS$CR <- code
     file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate[i])
-    file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])  #Meanwhile the same date than the planting date
+    file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])  #Meanwhile the same date than the planting date## this is changed to a month prior to planting, right??
     file_x$`SIMULATION CONTROLS`$SDATE <- as.POSIXct(coords$startingDate[i])
     file_x$`HARVEST DETAILS`$HDATE <- as.POSIXct(coords$harvestDate[i])
-    file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$TNAME <- paste0("Trial planting")
+    #file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$TNAME <- paste0("Trial planting")
     
     ex_profile <- suppressWarnings(DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))))
     file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SDUL #Assume field capacity as initial condition
@@ -121,7 +122,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
 #' @examples dssat.expfile(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = FALSE, filex_temp="MZRL8142.MZX", Planting_month_date = NULL,jobs=10)
 
 
-dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp="MZRM8143.MZX", Planting_month_date=NULL,Harvest_month_date=NULL, ID="TLID",season =NULL, plantingWindow=1){  #xmin,xmax,ymin,ymax,res,jobs,ex.name,path.to.extdata){
+dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp, Planting_month_date=NULL,Harvest_month_date=NULL, ID="TLID",season =NULL, plantingWindow=1, ingenoid){  #xmin,xmax,ymin,ymax,res,jobs,ex.name,path.to.extdata){
   if(AOI == TRUE){
     if(is.null(Planting_month_date) | is.null(Harvest_month_date)){
       print("with AOI=TRUE, Planting_month_date, Harvest_month_date can not be null, please refer to the documentation and provide mm-dd for both parameters")
@@ -148,7 +149,7 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp="MZ
     }
     
     ## set planting date one moth prior to the given Planting_month_date so that initial condition for the crop model could be set correctly
-    Planting_month_date <-as.Date(paste0(py, "-",Planting_month_date)) ## the year is only a place holder to set planting month 1 month earlier
+    Planting_month_date <- as.Date(paste0(py, "-",Planting_month_date)) ## the year is only a place holder to set planting month 1 month earlier
     countryCoord$plantingDate <- Planting_month_date
     Planting_month_date <- Planting_month_date %m-% months(1)
     
@@ -170,10 +171,12 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp="MZ
     
   }else{
     GPS_fieldData <- readRDS(paste("~/agwise-datacuration/dataops/datacuration/Data/useCase_",country, "_",useCaseName, "/", Crop, "/result/compiled_fieldData.RDS", sep=""))  
-    countryCoord <- unique(GPS_fieldData[, c("lon", "lat", "plantingDate", "harvestDate", ID)])
+    #countryCoord <- unique(GPS_fieldData[, c("lon", "lat", "plantingDate", "harvestDate", ID)])
+    countryCoord <- unique(GPS_fieldData[, c("lon", "lat", "plantingDate", "harvestDate")])
     countryCoord <- countryCoord[complete.cases(countryCoord), ]
     countryCoord$startingDate <- as.Date(countryCoord$plantingDate, "%Y-%m-%d") %m-% months(1)
-    names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate", "ID","startingDate")
+    #names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate", "ID","startingDate")
+    names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate","startingDate")
     ground <- countryCoord
   }
 
@@ -194,31 +197,31 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp="MZ
   Soil <- na.omit(Soil)
   
   if(AOI == TRUE){
-    metaDataWeather <- as.data.frame(Rainfall[,1:6])
+    metaDataWeather <- as.data.frame(Rainfall[,1:7])
   }else{
     metaDataWeather <- as.data.frame(Rainfall[,1:11])
   }
-  metaData_Soil <-Soil[,c("longitude", "latitude","NAME_1","NAME_2")]
+  metaData_Soil <- Soil[,c("longitude", "latitude","NAME_1","NAME_2")]
   
   
   metaData <- merge(metaDataWeather,metaData_Soil)
     if(AOI==TRUE){
-      number_years <- max(year(as.Date(metaData$startingDate, "%Y-%m-%d")))- min(year(as.Date(metaData$startingDate, "%Y-%m-%d")))
+      number_years <- max(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))- min(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))
       metaData <- unique(metaData[,1:4])
     }else{
       number_years <- 1
-      metaData <- subset(metaData,select=-ID)
+      #metaData <- subset(metaData,select=-ID)
       }
   coords <- merge(metaData,ground)
   grid <- as.matrix(coords)
   #Set working directory to save the results
-  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/DSSAT", sep="")
+  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT", sep="")
   
   #Define working directory with template data
   path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/Landing/DSSAT", sep="")
   #We need to add more codes
-  crops <- c("Maize","Potato")
-  cropcode <- c("MZ","PT")
+  crops <- c("Maize", "Potato", "Rice", "Soybean", "Wheat")
+  cropcode <- c("MZ","PT", "RI", "SB", "WH")
   
   cropid <- which(crops == Crop)
   code <- cropcode[cropid]
@@ -234,6 +237,7 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp="MZ
   # Process Experimental Files
   #foreach::foreach(i=seq_along(matching_folders), .export = '.GlobalEnv', .inorder = TRUE, .packages = c("tidyverse", "DSSAT")) %dopar% {
   
-  results <- map(seq_along(grid[,1]), create_filex,path.to.temdata=path.to.temdata,filex_temp=filex_temp,path.to.extdata=path.to.extdata,coords=coords, AOI=AOI, code=code,plantingWindow=plantingWindow,number_years=number_years) %||% print("Progress:")
+  results <- map(seq_along(grid[,1]), create_filex, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
+                 coords=coords, AOI=AOI, code=code, plantingWindow=plantingWindow, number_years=number_years, ingenoid=ingenoid) %||% print("Progress:")
 
 }

@@ -1,7 +1,7 @@
 #read, project and subset boundary data
 ##aez
 aoi<-vect(aoifile)
-aoi<-project(aoi, "EPSG: 4326")
+# aoi<-project(aoi, "EPSG: 4326")
 sel<-aoi$Names_AEZs %in% c("Birunga", "Buberuka highlands", "Congo-Nile watershed divide")
 aoi<-aoi[sel,]
 names(aoi)<-c("aez", "id")
