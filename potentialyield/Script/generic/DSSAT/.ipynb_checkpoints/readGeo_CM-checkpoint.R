@@ -1,4 +1,4 @@
-
+#test
 #################################################################################################################
 ## sourcing required packages
 #################################################################################################################
@@ -342,6 +342,7 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, season=1, Provin
     # RelativeHum  <- RelativeHum[RelativeHum$NAME_1 == Province, ]
     # cat("rh done")
       Soil <- readRDS(paste(pathIn,"SoilDEM_PointData_AOI_profile.RDS", sep=""))
+      Soil <- Soil[Soil$NAME_1 == Province, ]
   }else{
     Rainfall <- readRDS(paste(pathIn, "Rainfall_PointData_trial.RDS", sep=""))
     SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_PointData_trial.RDS", sep=""))
