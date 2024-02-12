@@ -20,5 +20,5 @@ execmodel_AOI <-dssat.exec(country = "Zambia",  useCaseName = "Solidaridad", Cro
 #################################################################################################################
 
 source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/merge_DSSAT_output.R")
-mergeresults <-merge_DSSAT_output(country = "Zambia",  useCaseName = "Solidaridad", Crop = "Soybean", AOI = FALSE,season=NULL)
+mergeresults <-merge_DSSAT_output(country = "Zambia",  useCaseName = "Solidaridad", Crop = "Soybean", AOI = TRUE,season=1)
 mergeresults_AOI <-merge_DSSAT_output(country = "Zambia",  useCaseName = "Solidaridad", Crop = "Soybean", AOI = TRUE,season=1)
