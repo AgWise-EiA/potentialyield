@@ -91,13 +91,13 @@ slu1 <- function(clay1,sand1) {
 #'
 #' @examples process_grid_element(1)
 
-process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxdata,Tmindata,Sraddata,Rainfalldata,coords,Soil,AOI,Province) {
+process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxdata,Tmindata,Sraddata,Rainfalldata,coords,Soil,AOI) {
 
-if(AOI==TRUE & !is.na(Province)){
-     if (!dir.exists(file.path(paste(path.to.extdata,"AOI/",paste0(Province,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")))){
-       dir.create(file.path(paste(path.to.extdata,"AOI/",paste0(Province,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")), recursive = TRUE)
+if(AOI==TRUE){
+     if (!dir.exists(file.path(paste(path.to.extdata,"AOI/",paste0('/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")))){
+       dir.create(file.path(paste(path.to.extdata,"AOI/",paste0('/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")), recursive = TRUE)
      }
-     setwd(paste(path.to.extdata,"AOI/",paste0(Province,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
+     setwd(paste(path.to.extdata,"AOI/",paste0('/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
 
    }else{
      if (!dir.exists(file.path(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")))){
@@ -118,28 +118,28 @@ if(AOI==TRUE & !is.na(Province)){
                              names_to = c("Variable", "Date"),
                              names_sep = "_",
                              values_to = "RAIN")
-    Rainfalldata <-unique(select(Rainfalldata,-c(Variable,startingDate, endDate)))
+    Rainfalldata <-unique(dplyr::select(Rainfalldata,-c(Variable,startingDate, endDate)))
 
     Sraddata <- pivot_longer(Sraddata,
                              cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate","ID"),
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "SRAD")
-    Sraddata <-unique(select(Sraddata,-c(Variable,startingDate, endDate)))
+    Sraddata <-unique(dplyr::select(Sraddata,-c(Variable,startingDate, endDate)))
 
     Tmaxdata <- pivot_longer(Tmaxdata,
                              cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate","ID"),
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "TMAX")
-    Tmaxdata <-unique(select(Tmaxdata,-c(Variable,startingDate, endDate)))
+    Tmaxdata <-unique(dplyr::select(Tmaxdata,-c(Variable,startingDate, endDate)))
 
     Tmindata <- pivot_longer(Tmindata,
                              cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate","ID"),
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "TMIN")
-    Tmindata <-unique(select(Tmindata,-c(Variable,startingDate, endDate)))
+    Tmindata <-unique(dplyr::select(Tmindata,-c(Variable,startingDate, endDate)))
 
     # RelativeHum <- pivot_longer(RelativeHum,
     #                             cols=-1:-7,
@@ -153,28 +153,28 @@ if(AOI==TRUE & !is.na(Province)){
                              names_to = c("Variable", "Date"),
                              names_sep = "_",
                              values_to = "RAIN")
-     Rainfalldata <-select(Rainfalldata,-Variable)
+     Rainfalldata <-dplyr::select(Rainfalldata,-Variable)
 
      Sraddata <- pivot_longer(Sraddata,
                                     cols=-1:-11,
                                     names_to = c("Variable", "Date"),
                                     names_sep = "_",
                                     values_to = "SRAD")
-     Sraddata <-select(Sraddata,-Variable)
+     Sraddata <-dplyr::select(Sraddata,-Variable)
 
      Tmaxdata <- pivot_longer(Tmaxdata,
                                     cols=-1:-11,
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "TMAX")
-    Tmaxdata <-select(Tmaxdata,-Variable)
+    Tmaxdata <-dplyr::select(Tmaxdata,-Variable)
 
     Tmindata <- pivot_longer(Tmindata,
                                    cols=-1:-11,
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "TMIN")
-    Tmindata <-select(Tmindata,-Variable)
+    Tmindata <-dplyr::select(Tmindata,-Variable)
   }
 
     # RelativeHum <- pivot_longer(RelativeHum,
@@ -186,7 +186,7 @@ if(AOI==TRUE & !is.na(Province)){
 
   tst <- na.omit(merge(Tmaxdata, merge(Tmindata,merge(Sraddata,Rainfalldata))))
   tst$DATE <- as.POSIXct(tst$Date, format = "%Y-%m-%d", tz = "UTC")
-  tst <- select(tst,c(DATE,TMAX,TMIN,SRAD,RAIN))
+  tst <- dplyr::select(tst,c(DATE,TMAX,TMIN,SRAD,RAIN))
   tst  <- mutate(tst , across(c(TMAX,TMIN,SRAD,RAIN), as.numeric))
 
   # Calculate long-term average temperature (TAV)
@@ -228,7 +228,7 @@ if(AOI==TRUE & !is.na(Province)){
 #   # Add station information
   attr(tst, "GENERAL") <- general_new
 
-  DSSAT::write_wth(tst, paste0("WHTE", formatC(width = 4, (as.integer(i)), flag = "0"), ".WTH"))
+  DSSAT::write_wth(tst, paste0("WHTE",coords[i, 2],"_",coords[i, 1],".WTH"))
   #cat(" Writing weather file")
 
 #   ##########################################
@@ -322,27 +322,22 @@ if(AOI==TRUE & !is.na(Province)){
 #' @export
 #'
 #' @examples readGeo_CM(country = "Kenya",  useCaseName = "KALRO", Crop = "Maize", AOI = TRUE, season=1, Province = "Kiambu")
-readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, season=1, Province){
-  cat(Province)
-  pathIn <- paste("~/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_", useCaseName,"/", Crop, "/raw/geo_4cropModel/", sep="")
-  if(AOI == TRUE & !is.na(Province)){
+readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, zone){
+  cat(zone)
+  pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel/", zone, "/", sep="")
+  if(AOI == TRUE){
     Rainfall <- readRDS(paste(pathIn, "Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
-    Rainfall <- Rainfall[Rainfall$NAME_1 == Province, ]
       #cat("Rain done")
     SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_Season_", season, "_PointData_AOI.RDS", sep=""))
-    SolarRadiation <- SolarRadiation[SolarRadiation$NAME_1 == Province, ]
     #cat("sr done")
       TemperatureMax <- readRDS(paste(pathIn, "temperatureMax_Season_", season, "_PointData_AOI.RDS", sep=""))
-    TemperatureMax <- TemperatureMax[TemperatureMax$NAME_1 == Province, ]
     #cat("tm done")
       TemperatureMin <- readRDS(paste(pathIn, "temperatureMin_Season_", season, "_PointData_AOI.RDS", sep=""))
-    TemperatureMin <- TemperatureMin[TemperatureMin$NAME_1 == Province, ]
     #cat("tmin done")
     #   RelativeHum <- readRDS(paste(pathIn, "relativeHumidity_Season_", season, "_PointData_AOI.RDS", sep=""))
     # RelativeHum  <- RelativeHum[RelativeHum$NAME_1 == Province, ]
     # cat("rh done")
       Soil <- readRDS(paste(pathIn,"SoilDEM_PointData_AOI_profile.RDS", sep=""))
-      Soil <- Soil[Soil$NAME_1 == Province, ]
   }else{
     Rainfall <- readRDS(paste(pathIn, "Rainfall_PointData_trial.RDS", sep=""))
     SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_PointData_trial.RDS", sep=""))
@@ -383,7 +378,7 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, season=1, Provin
   cls <- parallel::makePSOCKcluster(jobs)
   doParallel::registerDoParallel(cls)
   # Set working directory to save the results
-  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT", sep="")
+  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/",zone, sep="")
 
   #Define working directory with template data
   path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/Landing/DSSAT", sep="")
@@ -411,7 +406,7 @@ readGeo_CM <- function(country, useCaseName, Crop, AOI = FALSE, season=1, Provin
     
   results <- map(seq_along(grid[,1]), process_grid_element, country=country, path.to.extdata=path.to.extdata,
                  path.to.temdata=path.to.temdata, Tmaxdata=TemperatureMax, Tmindata=TemperatureMin, Sraddata=SolarRadiation,
-                 Rainfalldata=Rainfall, coords=coords, Soil=Soil, AOI=AOI, Province= Province) %||% print("Progress:")
+                 Rainfalldata=Rainfall, coords=coords, Soil=Soil, AOI=AOI) %||% print("Progress:")
 }
 
  # readGeo_CM(country = "Kenya",  useCaseName = "KALRO", Crop = "Maize", AOI = TRUE, season=1, Province = "Kwale")
