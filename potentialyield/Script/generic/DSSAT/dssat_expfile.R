@@ -1,12 +1,15 @@
 #################################################################################################################
 ## sourcing required packages 
 #################################################################################################################
-packages_required <- c("tidyverse", "lubridate")
+packages_required <- c("tidyverse", "lubridate","DSSAT")
 
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
 if(any(installed_packages == FALSE)){
   install.packages(packages_required[!installed_packages])}
+
+#detach("package:DSSAT", unload = TRUE)
+devtools::install_github("palderman/DSSAT", ref = "develop",force=T,upgrade = 'always')
 
 # load required packages
 invisible(lapply(packages_required, library, character.only = TRUE))
@@ -27,20 +30,21 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #'
 #' @examples create_filex(1)
 
-create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI, code,plantingWindow,number_years,ingenoid){
+create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI, code,plantingWindow,number_years,ingenoid, Province){
   setwd(path.to.temdata)
   
   #Read in original FileX
   file_x <- DSSAT::read_filex(filex_temp)
   #Set the experimental directory
   if(AOI==TRUE){
-    setwd(paste(path.to.extdata,"AOI",paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
+    #setwd(paste(path.to.extdata,"AOI",paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
+    setwd(paste(path.to.extdata,paste0(Province,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
     #Make proposed changes to FileX
     file_x$FIELDS$WSTA<-paste0("WHTE", formatC(width = 4, as.integer((i)), flag = "0"))
     file_x$FIELDS$ID_SOIL<-paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))
     file_x$CULTIVARS$CR <- code
     file_x$CULTIVARS$INGENO <- ingenoid
-    ex_profile <- suppressWarnings(DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))))
+    ex_profile <- DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i)),flag = "0")))
     file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SDUL #Assume field capacity as initial condition
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
     file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])
@@ -91,7 +95,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     file_x$`HARVEST DETAILS`$HDATE <- as.POSIXct(coords$harvestDate[i])
     #file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$TNAME <- paste0("Trial planting")
     
-    ex_profile <- suppressWarnings(DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))))
+    ex_profile <- suppressWarnings(DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i))," ", flag = "0"))))
     file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SDUL #Assume field capacity as initial condition
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
     #Overwrite original FileX with new values
@@ -122,7 +126,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
 #' @examples dssat.expfile(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = FALSE, filex_temp="MZRL8142.MZX", Planting_month_date = NULL,jobs=10)
 
 
-dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp, Planting_month_date=NULL,Harvest_month_date=NULL, ID="TLID",season =NULL, plantingWindow=1, ingenoid){  #xmin,xmax,ymin,ymax,res,jobs,ex.name,path.to.extdata){
+dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp, Planting_month_date=NULL,Harvest_month_date=NULL, ID="TLID",season =NULL, plantingWindow=1, ingenoid, Province){  #xmin,xmax,ymin,ymax,res,jobs,ex.name,path.to.extdata){
   if(AOI == TRUE){
     if(is.null(Planting_month_date) | is.null(Harvest_month_date)){
       print("with AOI=TRUE, Planting_month_date, Harvest_month_date can not be null, please refer to the documentation and provide mm-dd for both parameters")
@@ -213,10 +217,14 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp, Pl
       #metaData <- subset(metaData,select=-ID)
       }
   coords <- merge(metaData,ground)
+  coords <- coords[coords$NAME_1==Province,]
   grid <- as.matrix(coords)
   #Set working directory to save the results
-  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT", sep="")
-  
+  if(AOI == TRUE){
+    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/",ingenoid, sep="")
+  }else{
+    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/fieldData/",ingenoid, sep="")
+  }
   #Define working directory with template data
   path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/Landing/DSSAT", sep="")
   #We need to add more codes
@@ -238,6 +246,6 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp, Pl
   #foreach::foreach(i=seq_along(matching_folders), .export = '.GlobalEnv', .inorder = TRUE, .packages = c("tidyverse", "DSSAT")) %dopar% {
   
   results <- map(seq_along(grid[,1]), create_filex, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
-                 coords=coords, AOI=AOI, code=code, plantingWindow=plantingWindow, number_years=number_years, ingenoid=ingenoid) %||% print("Progress:")
+                 coords=coords, AOI=AOI, code=code, plantingWindow=plantingWindow, number_years=number_years, ingenoid=ingenoid, Province =Province) %||% print("Progress:")
 
 }
