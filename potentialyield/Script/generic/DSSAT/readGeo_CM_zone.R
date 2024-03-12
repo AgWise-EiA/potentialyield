@@ -95,7 +95,7 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
 
 if(AOI==TRUE){
      pathAOI <- paste(path.to.extdata,"AOI/",paste0(variety,'/',zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-     if (!dir.exists(file.path(pathAOI))){
+     if (!dir.exists(file.path(pathAOI)))){
        dir.create(file.path(pathAOI), recursive = TRUE)
      }
      setwd(pathAOI)
@@ -209,7 +209,6 @@ if(AOI==TRUE){
 
 #   #Get elevation
   #elev <- Soil$altitude[which(Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]))]
-
   #elev <-ifelse(length(elev) >0,
   #              Soil$altitude[which(Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]))],
   #              -99)
@@ -361,7 +360,7 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   }
   names(Soil)[names(Soil)=="lat"] <- "latitude"
   names(Soil)[names(Soil)=="lon"] <- "longitude"
-  #Soil <- na.omit(Soil)
+  Soil <- na.omit(Soil)
 
   if(AOI == TRUE){
     metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2")])
@@ -391,10 +390,10 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   # cls <- parallel::makePSOCKcluster(jobs)
   # doParallel::registerDoParallel(cls)
   # Set working directory to save the results
-  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/", sep="")
+  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/",zone, sep="")
 
   #Define working directory with template data
-  path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/Landing/DSSAT/", sep="")
+  path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/Landing/DSSAT", sep="")
 
 
 
