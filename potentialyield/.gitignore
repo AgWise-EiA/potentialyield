@@ -3,3 +3,4 @@ Data/*
 /Script/generic/DSSAT/Testing/*
 /Script/generic/DSSAT/LouiseDoNotModify/
 *-checkpoint.R
+*.Rout
