@@ -209,7 +209,6 @@ if(AOI==TRUE){
 
 #   #Get elevation
   #elev <- Soil$altitude[which(Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]))]
-
   #elev <-ifelse(length(elev) >0,
   #              Soil$altitude[which(Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]))],
   #              -99)
@@ -361,7 +360,7 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   }
   names(Soil)[names(Soil)=="lat"] <- "latitude"
   names(Soil)[names(Soil)=="lon"] <- "longitude"
-  #Soil <- na.omit(Soil)
+  Soil <- na.omit(Soil)
 
   if(AOI == TRUE){
     metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2")])
