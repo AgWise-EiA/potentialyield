@@ -185,8 +185,7 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp, Pl
   }
 
   pathIn <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/raw/geo_4cropModel/", sep="")
-  
-  
+
   if(AOI == TRUE){
     Rainfall <- readRDS(paste(pathIn, "Rainfall_Season_",season,"_PointData_AOI.RDS", sep=""))
     Soil <- readRDS(paste(pathIn, "SoilDEM_PointData_AOI_profile.RDS", sep=""))

@@ -91,19 +91,20 @@ slu1 <- function(clay1,sand1) {
 #'
 #' @examples process_grid_element(1)
 
-process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxdata,Tmindata,Sraddata,Rainfalldata,coords,Soil,AOI) {
+process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxdata,Tmindata,Sraddata,Rainfalldata,coords,Soil,AOI,variety,zone,level2) {
 
 if(AOI==TRUE){
-     if (!dir.exists(file.path(paste(path.to.extdata,"AOI/",paste0('/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")))){
-       dir.create(file.path(paste(path.to.extdata,"AOI/",paste0('/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")), recursive = TRUE)
+     pathAOI <- paste(path.to.extdata,"AOI/",paste0(variety,'/',zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+     if (!dir.exists(file.path(pathAOI))){
+       dir.create(file.path(pathAOI), recursive = TRUE)
      }
-     setwd(paste(path.to.extdata,"AOI/",paste0('/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
+     setwd(pathAOI)
 
    }else{
-     if (!dir.exists(file.path(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")))){
-       dir.create(file.path(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")), recursive = TRUE)
+     if (!dir.exists(file.path(paste(path.to.extdata,paste0(variety,'/',zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")))){
+       dir.create(file.path(paste(path.to.extdata,paste0(variety,'/',zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")), recursive = TRUE)
      }
-     setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
+     setwd(paste(path.to.extdata,paste0(variety,'/',zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
    }
   Tmaxdata <- Tmaxdata[Tmaxdata$longitude==coords$longitude[i] & Tmaxdata$latitude==coords$latitude[i],]
   Tmindata <- Tmindata[Tmindata$longitude==coords$longitude[i] & Tmindata$latitude==coords$latitude[i],]
@@ -207,10 +208,10 @@ if(AOI==TRUE){
 
 
 #   #Get elevation
-  elev <- Soil$altitude[which(Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]))]
-  elev <-ifelse(length(elev) >0,
-                Soil$altitude[which(Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]))],
-                -99)
+  #elev <- Soil$altitude[which(Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]))]
+  #elev <-ifelse(length(elev) >0,
+  #              Soil$altitude[which(Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]))],
+  #              -99)
 #   #Location (NAME_2)
   INS <- toupper(substr(unique(Tmaxdata$NAME_2),start =1, stop =4))
   # Generate new general information table
@@ -218,7 +219,7 @@ if(AOI==TRUE){
     INSI = INS,
     LAT = as.numeric(coords[i, 2]),
     LONG = as.numeric(coords[i, 1]),
-    ELEV = elev,
+    #ELEV = elev,
     TAV = tav,
     AMP = amp,
     REFHT = 2,
@@ -228,7 +229,8 @@ if(AOI==TRUE){
 #   # Add station information
   attr(tst, "GENERAL") <- general_new
 
-  DSSAT::write_wth(tst, paste0("WHTE",coords[i, 2],"_",coords[i, 1],".WTH"))
+  #DSSAT::write_wth(tst, paste0("WHTE",coords[i, 2],"_",coords[i, 1],".WTH"))
+  DSSAT::write_wth(tst, paste0("WHTE", formatC(width = 4, (as.integer(i)), flag = "0"), ".WTH"))
   #cat(" Writing weather file")
 
    ##########################################
@@ -322,22 +324,32 @@ if(AOI==TRUE){
 #' @export
 #'
 #' @examples readGeo_CM(country = "Kenya",  useCaseName = "KALRO", Crop = "Maize", AOI = TRUE, season=1, Province = "Kiambu")
-readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, zone){
+readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, zone,level2,variety){
   cat(zone)
-  pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel/", zone, "/", sep="")
+  pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel/", sep="")
   if(AOI == TRUE){
-    Rainfall <- readRDS(paste(pathIn, "Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
-      #cat("Rain done")
-    SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_Season_", season, "_PointData_AOI.RDS", sep=""))
-    #cat("sr done")
-      TemperatureMax <- readRDS(paste(pathIn, "temperatureMax_Season_", season, "_PointData_AOI.RDS", sep=""))
-    #cat("tm done")
-      TemperatureMin <- readRDS(paste(pathIn, "temperatureMin_Season_", season, "_PointData_AOI.RDS", sep=""))
-    #cat("tmin done")
+    Rainfall <- readRDS(paste(pathIn,zone, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
+    Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]
+    Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]
+       #cat("Rain done")
+    SolarRadiation <- readRDS(paste(pathIn,zone, "/solarRadiation_Season_", season, "_PointData_AOI.RDS", sep=""))
+    SolarRadiation <- SolarRadiation[SolarRadiation$NAME_1 == zone, ]
+    SolarRadiation <- SolarRadiation[SolarRadiation$NAME_2 == level2, ]
+     #cat("sr done")
+      TemperatureMax <- readRDS(paste(pathIn,zone, "/temperatureMax_Season_", season, "_PointData_AOI.RDS", sep=""))
+      TemperatureMax <- TemperatureMax[TemperatureMax$NAME_1 == zone, ]
+      TemperatureMax <- TemperatureMax[TemperatureMax$NAME_2 == level2, ]
+      #cat("tm done")
+      TemperatureMin <- readRDS(paste(pathIn,zone, "/temperatureMin_Season_", season, "_PointData_AOI.RDS", sep=""))
+      TemperatureMin <- TemperatureMin[TemperatureMin$NAME_1 == zone, ]
+      TemperatureMin <- TemperatureMin[TemperatureMin$NAME_2 == level2, ]
+       #cat("tmin done")
     #   RelativeHum <- readRDS(paste(pathIn, "relativeHumidity_Season_", season, "_PointData_AOI.RDS", sep=""))
     # RelativeHum  <- RelativeHum[RelativeHum$NAME_1 == Province, ]
     # cat("rh done")
-      Soil <- readRDS(paste(pathIn,"SoilDEM_PointData_AOI_profile.RDS", sep=""))
+      Soil <- readRDS(paste(pathIn,zone,"/SoilDEM_PointData_AOI_profile.RDS", sep=""))
+      Soil <- Soil[Soil$NAME_1 == zone, ]
+      Soil <- Soil[Soil$NAME_2 == level2, ]
   }else{
     Rainfall <- readRDS(paste(pathIn, "Rainfall_PointData_trial.RDS", sep=""))
     SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_PointData_trial.RDS", sep=""))
@@ -378,10 +390,10 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   # cls <- parallel::makePSOCKcluster(jobs)
   # doParallel::registerDoParallel(cls)
   # Set working directory to save the results
-  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/",zone, sep="")
+  path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/", sep="")
 
   #Define working directory with template data
-  path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/Landing/DSSAT", sep="")
+  path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/Landing/DSSAT/", sep="")
 
 
 
@@ -406,7 +418,7 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
     
   results <- map(seq_along(grid[,1]), process_grid_element, country=country, path.to.extdata=path.to.extdata,
                  path.to.temdata=path.to.temdata, Tmaxdata=TemperatureMax, Tmindata=TemperatureMin, Sraddata=SolarRadiation,
-                 Rainfalldata=Rainfall, coords=coords, Soil=Soil, AOI=AOI) %||% print("Progress:")
+                 Rainfalldata=Rainfall, coords=coords, Soil=Soil, AOI=AOI,variety=variety,zone=zone, level2=level2) %||% print("Progress:")
 }
 
  # readGeo_CM(country = "Kenya",  useCaseName = "KALRO", Crop = "Maize", AOI = TRUE, season=1, Province = "Kwale")
