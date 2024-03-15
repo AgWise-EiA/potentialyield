@@ -1,3 +1,12 @@
+# Create DSSAT experimental file
+
+# Introduction: 
+# This script allows the creation of experimental files up to administrative level 2 
+# Authors : P.Moreno, A. Sila, S. Mkuhlani, E.Bendito Garcia 
+# Credentials : EiA, 2024
+# Last modified March 13, 2024 by P.Moreno 
+
+
 #################################################################################################################
 ## sourcing required packages 
 #################################################################################################################
@@ -6,10 +15,12 @@ packages_required <- c("tidyverse", "lubridate","DSSAT")
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
 if(any(installed_packages == FALSE)){
-  install.packages(packages_required[!installed_packages])}
-
-#detach("package:DSSAT", unload = TRUE)
-devtools::install_github("palderman/DSSAT", ref = "develop",force=T,upgrade = 'always')
+  if(packages_required[!installed_packages] =="DSSAT"){
+    remotes::install_github("palderman/DSSAT", ref = "develop",force=T)
+  } else {
+    install.packages(packages_required[!installed_packages])
+  }
+}
 
 # load required packages
 invisible(lapply(packages_required, library, character.only = TRUE))
@@ -18,19 +29,31 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #'
 #' @param i point/folder from a list
 #' @param path.to.temdata directory with template weather and soil data in DSSAT format
-#' @param filex_temp Template experimental file name in DSSAT format (FILEX)
+#' @param filex_temp Name of the template experimental file in DSSAT format (FILEX)
 #' @param path.to.extdata working directory to save the weather and soil data in DSSAT format
-#' @param coords dataframe with the locations and metadata
-#' @param AOI True if the data is required for target area, and false if it is for trial sites
-#' @param code crop code in DSSAT format
-#' @param plantingWindow number of weeks that define the planting window  considering the Planting_month_date as earliest planting week. It is given when several planting dates are to be tested to determine optimal planting date (applies to AOI)  
-#' @param number_years number of years the simulations are run for the AOI (it does not apply to the trial location data)
+#' @param coords dataframe with the locations and metadata (created by the function dssat.expfile)
+#' @param AOI "Area of interest" AOI=TRUE when we want to explore crop simulations with historical data.
+#'        AOI= FALSE when there is information for actual trial sites (with observed yield data).
+#' @param crop_code crop code in DSSAT format (e.g. "MZ" for maize, created by function dssat.expfile)
+#' @param plantingWindow number of weeks that define the planting window considering the Planting_month_date as the earliest planting week. 
+#'        It is given when several planting dates are to be tested to determine optimal planting date (applies when AOI= TRUE)  
+#' @param number_years Number of years the simulations are run when AOI=TRUE (it does not apply to the trial location data)
+#' @param varietyid id of the variety based on the cultivar file of DSSAT (column @VAR# in the cultivar file and parameter INGENO in the experimental file *.**X)
+#' @param zone Name of the administrative level 1 for the specific location the experimental file is created.
+#' @param level2 Name of the administrative level 2 (has to be part of the administrative level 1 or "zone" of the country) 
+#'        for the specific location the experimental file is created
 #' 
 #' @return
 #'
-#' @examples create_filex(1)
+#' @examples create_filex(i=1,path.to.temdata = "/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_Kenya_KALRO/Maize/Landing/DSSAT",
+#'                        filex_temp="KEAG8104.MZX",
+#'                        path.to.extdata = "/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_Kenya_Solidaridad/Maize/transform/DSSAT/AOI/999991",
+#'                        country="Kenya",coords = , AOI=TRUE, crop_code ="MZ",plantingWindow=1,number_years,varietyid = "999991", zone ="Tete", level2="Macanga")
 
-create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI, code,plantingWindow,number_years,ingenoid, Province){
+
+
+
+create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI=TRUE, crop_code,plantingWindow=1,number_years,varietyid, zone, level2){
   setwd(path.to.temdata)
   
   #Read in original FileX
@@ -38,12 +61,12 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
   #Set the experimental directory
   if(AOI==TRUE){
     #setwd(paste(path.to.extdata,"AOI",paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
-    setwd(paste(path.to.extdata,paste0(Province,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
+    setwd(paste(path.to.extdata,paste0(zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
     #Make proposed changes to FileX
     file_x$FIELDS$WSTA<-paste0("WHTE", formatC(width = 4, as.integer((i)), flag = "0"))
     file_x$FIELDS$ID_SOIL<-paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))
-    file_x$CULTIVARS$CR <- code
-    file_x$CULTIVARS$INGENO <- ingenoid
+    file_x$CULTIVARS$CR <- crop_code
+    file_x$CULTIVARS$INGENO <- varietyid
     ex_profile <- DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i)),flag = "0")))
     file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SDUL #Assume field capacity as initial condition
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
@@ -82,13 +105,13 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
       }
 
     #Overwrite original FileX with new values
-    DSSAT::write_filex(file_x,paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.',code,'X'))
+    DSSAT::write_filex(file_x,paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.',crop_code,'X'))
   }else{
     setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
     #Make proposed changes to FileX
     file_x$FIELDS$WSTA <- paste0("WHTE", formatC(width = 4, as.integer((i)), flag = "0"))
     file_x$FIELDS$ID_SOIL<-paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))
-    file_x$CULTIVARS$CR <- code
+    file_x$CULTIVARS$CR <- crop_code
     file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate[i])
     file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])  #Meanwhile the same date than the planting date## this is changed to a month prior to planting, right??
     file_x$`SIMULATION CONTROLS`$SDATE <- as.POSIXct(coords$startingDate[i])
@@ -99,7 +122,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SDUL #Assume field capacity as initial condition
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
     #Overwrite original FileX with new values
-    DSSAT::write_filex(file_x,paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.',code,'X'))
+    DSSAT::write_filex(file_x,paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.',crop_code,'X'))
     
   }
   gc()
@@ -110,23 +133,31 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
 #' Create multiple experimental files
 #'
 #' @param country country name
-#' @param useCaseName use case name  name
+#' @param useCaseName use case name 
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
-#' @param AOI True if the data is required for target area, and false if it is for trial sites
+#' @param AOI "Area of interest" AOI=TRUE when we want to explore crop simulations with historical data.
+#'        AOI= FALSE when there is information for actual trial sites (with observed yield data).
 #' @param filex_temp Name of the template experimental file in DSSAT format (FILEX)
-#' @param Planting_month_date is needed only for AOI and should be provided as month_date, for trial locations the actual planting date is be used so no need to change the default value
-#' @param Harvest_month_date if AOI is TRUE, Harvest_month_date should be provided in mm-dd format.  weather data across years between Planting_month_date and Harvest_month_date will be provided
+#' @param Planting_month_date it is needed only when AOI=TRUE and it should be provided as mm-dd format 
+#' @param Harvest_month_date if AOI =TRUE, Harvest_month_date is the initial month for harvesting and it should be provided in mm-dd format.
+#'        The parameter is no needed it when AOI=FALSE because the actual harvesting date from the trials would be provided.   
 #' @param ID trial ID
 #' @param season when data is needed for more than one season, this needs to be provided to be used in the file name
-#' @param plantingWindow number of weeks starting considering the Planting_month_date as earliest planting week. It is given when several planting dates are to be tested to determine optimal planting date
-
+#' @param plantingWindow number of weeks starting considering the Planting_month_date as earliest planting week. It is given when several 
+#'        planting dates are to be tested to determine optimal planting date
+#' @param varietyid ID of the variety based on the cultivar file of DSSAT (column @VAR# in the cultivar file and parameter INGENO in the experimental file *.**X)
+#' @param zone Name of administrative level 1 for the specific location the experimental file is created
+#' @param level2 Name of administrative level 2 (part of the administrative level 1 or "zone") for the specific location the experimental file is created
+#'
 #' @return
 #' @export
 #'
-#' @examples dssat.expfile(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = FALSE, filex_temp="MZRL8142.MZX", Planting_month_date = NULL,jobs=10)
+#' @examples dssat.expfile(country="Mozambique", useCaseName = "Solidaridad", Crop = "Maize", AOI = FALSE,
+#'                         filex_temp= "ELZA0201.MZX", Planting_month_date=NULL,Harvest_month_date=NULL, 
+#'                         ID="TLID",season = 1, plantingWindow = 1,varietyid = "999991", zone ="Tete", level2="Macanga")
 
-
-dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp, Planting_month_date=NULL,Harvest_month_date=NULL, ID="TLID",season =NULL, plantingWindow=1, ingenoid, Province){  #xmin,xmax,ymin,ymax,res,jobs,ex.name,path.to.extdata){
+dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Planting_month_date=NULL,Harvest_month_date=NULL, 
+                          ID="TLID",season =1, plantingWindow=1,varietyid, zone, level2){  
   if(AOI == TRUE){
     if(is.null(Planting_month_date) | is.null(Harvest_month_date)){
       print("with AOI=TRUE, Planting_month_date, Harvest_month_date can not be null, please refer to the documentation and provide mm-dd for both parameters")
@@ -175,11 +206,9 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp, Pl
     
   }else{
     GPS_fieldData <- readRDS(paste("~/agwise-datacuration/dataops/datacuration/Data/useCase_",country, "_",useCaseName, "/", Crop, "/result/compiled_fieldData.RDS", sep=""))  
-    #countryCoord <- unique(GPS_fieldData[, c("lon", "lat", "plantingDate", "harvestDate", ID)])
     countryCoord <- unique(GPS_fieldData[, c("lon", "lat", "plantingDate", "harvestDate")])
     countryCoord <- countryCoord[complete.cases(countryCoord), ]
     countryCoord$startingDate <- as.Date(countryCoord$plantingDate, "%Y-%m-%d") %m-% months(1)
-    #names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate", "ID","startingDate")
     names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate","startingDate")
     ground <- countryCoord
   }
@@ -187,8 +216,8 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp, Pl
   pathIn <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/raw/geo_4cropModel/", sep="")
 
   if(AOI == TRUE){
-    Rainfall <- readRDS(paste(pathIn, "Rainfall_Season_",season,"_PointData_AOI.RDS", sep=""))
-    Soil <- readRDS(paste(pathIn, "SoilDEM_PointData_AOI_profile.RDS", sep=""))
+    Rainfall <- readRDS(paste(pathIn,zone, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
+    Soil <- readRDS(paste(pathIn,zone,"/SoilDEM_PointData_AOI_profile.RDS", sep=""))
 
   }else{
     Rainfall <- readRDS(paste(pathIn, "Rainfall_PointData_trial.RDS", sep=""))
@@ -213,38 +242,33 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = FALSE,filex_temp, Pl
       metaData <- unique(metaData[,1:4])
     }else{
       number_years <- 1
-      #metaData <- subset(metaData,select=-ID)
       }
   coords <- merge(metaData,ground)
-  coords <- coords[coords$NAME_1==Province,]
+  coords <- coords[coords$NAME_1==zone,]
   grid <- as.matrix(coords)
+  
   #Set working directory to save the results
   if(AOI == TRUE){
-    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/",ingenoid, sep="")
+    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/",varietyid, sep="")
   }else{
-    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/fieldData/",ingenoid, sep="")
+    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/fieldData/",varietyid, sep="")
   }
   #Define working directory with template data
   path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/Landing/DSSAT", sep="")
   #We need to add more codes
   crops <- c("Maize", "Potato", "Rice", "Soybean", "Wheat")
-  cropcode <- c("MZ","PT", "RI", "SB", "WH")
+  cropcode_supported <- c("MZ","PT", "RI", "SB", "WH")
   
   cropid <- which(crops == Crop)
-  code <- cropcode[cropid]
+  crop_code <- cropcode_supported[cropid]
   
-  #require(doParallel)
-  #require(foreach)
-  # Set number of parallel workers
-  #cls <- parallel::makePSOCKcluster(jobs)
-  #doParallel::registerDoParallel(cls)
-  #Set working directory (where the file is)
+
   setwd(path.to.extdata)
 
-  # Process Experimental Files
-  #foreach::foreach(i=seq_along(matching_folders), .export = '.GlobalEnv', .inorder = TRUE, .packages = c("tidyverse", "DSSAT")) %dopar% {
   
   results <- map(seq_along(grid[,1]), create_filex, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
-                 coords=coords, AOI=AOI, code=code, plantingWindow=plantingWindow, number_years=number_years, ingenoid=ingenoid, Province =Province) %||% print("Progress:")
+                 coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
+                 zone=zone, level2=level2) %||% print("Progress:")
 
 }
+
