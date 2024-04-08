@@ -36,7 +36,7 @@ rundssat <-function(i,path.to.extdata,TRT,AOI=T,crop_code,zone,level2){
   if(AOI==TRUE){
     setwd(paste(path.to.extdata,paste0(zone,"/",level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
   } else{
-    setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0")), sep = "/"))
+    setwd(paste(path.to.extdata,paste0(zone,"/",'EXTE', formatC(width = 4, as.integer((i)), flag = "0")), sep = "/"))
   }
 
 
