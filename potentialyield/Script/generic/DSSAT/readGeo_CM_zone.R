@@ -107,11 +107,15 @@ if(AOI==TRUE){
      setwd(paste(path.to.extdata,paste0(varietyid,'/',zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
      
      
-     path_fieldData <- paste(path.to.extdata,"fieldData/",paste0(varietyid,'/',zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-     if (!dir.exists(file.path(ppath_fieldData))){
+     path_fieldData <- paste(path.to.extdata,"fieldData/",paste0(varietyid,'/',zone,'/','/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+     # path_fieldData <- paste(path.to.extdata,"fieldData/",paste0(varietyid,'/',zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+     
+          if (!dir.exists(file.path(path_fieldData))){
        dir.create(file.path(path_fieldData), recursive = TRUE)
      }
-     setwd(pathAOI)
+     # setwd(pathAOI)
+     setwd(path_fieldData)
+     
    }
   Tmaxdata <- Tmaxdata[Tmaxdata$longitude==coords$longitude[i] & Tmaxdata$latitude==coords$latitude[i],]
   Tmindata <- Tmindata[Tmindata$longitude==coords$longitude[i] & Tmindata$latitude==coords$latitude[i],]
@@ -359,11 +363,25 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
       Soil <- Soil[Soil$NAME_2 == level2, ]
   }else{
     Rainfall <- readRDS(paste(pathIn, "Rainfall_PointData_trial.RDS", sep=""))
+    Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]
+    #Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]
+    #cat("Rain done")
     SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_PointData_trial.RDS", sep=""))
+    SolarRadiation <- SolarRadiation[SolarRadiation$NAME_1 == zone, ]
+    #SolarRadiation <- SolarRadiation[SolarRadiation$NAME_2 == level2, ]
+    #cat("sr done")
     TemperatureMax <- readRDS(paste(pathIn, "temperatureMax_PointData_trial.RDS", sep=""))
+    TemperatureMax <- TemperatureMax[TemperatureMax$NAME_1 == zone, ]
+    #TemperatureMax <- TemperatureMax[TemperatureMax$NAME_2 == level2, ]
+    #cat("tm done")
     TemperatureMin <- readRDS(paste(pathIn, "temperatureMin_PointData_trial.RDS", sep=""))
+    TemperatureMin <- TemperatureMin[TemperatureMin$NAME_1 == zone, ]
+    #TemperatureMin <- TemperatureMin[TemperatureMin$NAME_2 == level2, ]
+    #cat("tmin done")
     # RelativeHum <- readRDS(paste(pathIn, "relativeHumidity_PointData_trial.RDS", sep=""))
     Soil <- readRDS(paste(pathIn, "SoilDEM_PointData_trial_profile.RDS", sep=""))
+    Soil <- Soil[Soil$NAME_1 == zone, ]
+    #Soil <- Soil[Soil$NAME_2 == level2, ]
   }
   names(Soil)[names(Soil)=="lat"] <- "latitude"
   names(Soil)[names(Soil)=="lon"] <- "longitude"
@@ -402,7 +420,7 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
     }
   else{
     path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", 
-                             country, "_",useCaseName, "/", Crop, "/transform/DSSAT/fieldData/", sep="")
+                             country, "_",useCaseName, "/", Crop, "/transform/DSSAT/", sep="")
   }
   
   if (!dir.exists(file.path(path.to.extdata))){
