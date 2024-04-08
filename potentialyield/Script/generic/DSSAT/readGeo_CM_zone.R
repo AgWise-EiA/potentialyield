@@ -94,7 +94,7 @@ slu1 <- function(clay1,sand1) {
 process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxdata,Tmindata,Sraddata,Rainfalldata,coords,Soil,AOI,varietyid,zone,level2) {
 
 if(AOI==TRUE){
-     pathAOI <- paste(path.to.extdata,"AOI/",paste0(varietyid,'/',zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+     pathAOI <- paste(path.to.extdata,paste0(varietyid,'/',zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
      if (!dir.exists(file.path(pathAOI))){
        dir.create(file.path(pathAOI), recursive = TRUE)
      }
@@ -336,8 +336,7 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel/", sep="")
   if(AOI == TRUE){
     Rainfall <- readRDS(paste(pathIn,zone, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
-    Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]
-    Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]
+
        #cat("Rain done")
     SolarRadiation <- readRDS(paste(pathIn,zone, "/solarRadiation_Season_", season, "_PointData_AOI.RDS", sep=""))
     SolarRadiation <- SolarRadiation[SolarRadiation$NAME_1 == zone, ]
@@ -355,16 +354,19 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
     # RelativeHum  <- RelativeHum[RelativeHum$NAME_1 == Province, ]
     # cat("rh done")
       Soil <- readRDS(paste(pathIn,zone,"/SoilDEM_PointData_AOI_profile.RDS", sep=""))
-      Soil <- Soil[Soil$NAME_1 == zone, ]
-      Soil <- Soil[Soil$NAME_2 == level2, ]
+
   }else{
     Rainfall <- readRDS(paste(pathIn, "Rainfall_PointData_trial.RDS", sep=""))
     SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_PointData_trial.RDS", sep=""))
     TemperatureMax <- readRDS(paste(pathIn, "temperatureMax_PointData_trial.RDS", sep=""))
     TemperatureMin <- readRDS(paste(pathIn, "temperatureMin_PointData_trial.RDS", sep=""))
     # RelativeHum <- readRDS(paste(pathIn, "relativeHumidity_PointData_trial.RDS", sep=""))
-    Soil <- readRDS(paste(pathIn, "SoilDEM_PointData_trial_profile.RDS", sep=""))
+    Soil <- readRDS(paste(pathIn, "SoilDEM_PointData_trial.RDS", sep=""))
   }
+  Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]
+  Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]
+  Soil <- Soil[Soil$NAME_1 == zone, ]
+  Soil <- Soil[Soil$NAME_2 == level2, ]
   names(Soil)[names(Soil)=="lat"] <- "latitude"
   names(Soil)[names(Soil)=="lon"] <- "longitude"
   Soil <- na.omit(Soil)
@@ -408,8 +410,7 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   if (!dir.exists(file.path(path.to.extdata))){
     dir.create(file.path(path.to.extdata), recursive = TRUE)
   }
-  setwd(path.to.extdata)
-  
+
   #Define working directory with template data (soil and weather files in DSSAT format as template)
   path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", 
                            country, "_",useCaseName, "/", Crop, "/Landing/DSSAT/", sep="")
