@@ -4,7 +4,7 @@
 # This script allows the creation of experimental files up to administrative level 2 
 # Authors : P.Moreno, A. Sila, S. Mkuhlani, E.Bendito Garcia 
 # Credentials : EiA, 2024
-# Last modified March 13, 2024 by P.Moreno 
+# Last modified April 08, 2024 
 
 
 #################################################################################################################
@@ -15,12 +15,7 @@ packages_required <- c("tidyverse", "lubridate","DSSAT")
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
 if(any(installed_packages == FALSE)){
-  if(packages_required[!installed_packages] =="DSSAT"){
-    remotes::install_github("palderman/DSSAT", ref = "develop",force=T)
-  } else {
-    install.packages(packages_required[!installed_packages])
-  }
-}
+  install.packages(packages_required[!installed_packages])
 
 # load required packages
 invisible(lapply(packages_required, library, character.only = TRUE))
@@ -42,6 +37,7 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #' @param zone Name of the administrative level 1 for the specific location the experimental file is created.
 #' @param level2 Name of the administrative level 2 (has to be part of the administrative level 1 or "zone" of the country) 
 #'        for the specific location the experimental file is created
+#' @param fertilizer if TRUE the parameter modifies the fertilizer date to be at planting 
 #' 
 #' @return
 #'
@@ -53,7 +49,7 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 
 
 
-create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI=TRUE, crop_code,plantingWindow=1,number_years,varietyid, zone, level2){
+create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI=TRUE, crop_code,plantingWindow=1,number_years,varietyid, zone, level2,fertilizer =FALSE){
   setwd(path.to.temdata)
   
   #Read in original FileX
@@ -71,11 +67,19 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SDUL #Assume field capacity as initial condition
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
     file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])
-    file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate[i]) 
+    file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate[i])
+    
+    if(fertilizer == T){
+      file_x$`FERTILIZERS (INORGANIC)`$FDATE <- as.POSIXct(coords$plantingDate[i]) #fertilizer at planting
+      file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$TNAME <- paste0(file_x$`FERTILIZERS (INORGANIC)`$FERNAME[1], " Planting 0")
+    }else{
+      file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$TNAME <- paste0("Initial planting")
+    }
+    
     file_x$`HARVEST DETAILS`$HDATE <- as.POSIXct(coords$harvestDate[i])
     file_x$`SIMULATION CONTROLS`$SDATE <- as.POSIXct(coords$startingDate[i])
     file_x$`SIMULATION CONTROLS`$NYERS <- number_years
-    file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$TNAME <- paste0("Initial planting")
+    
     for (j in 1:plantingWindow){
       file_x$`INITIAL CONDITIONS`<- file_x$`INITIAL CONDITIONS` %>% add_row(!!!file_x$`INITIAL CONDITIONS`[file_x$`INITIAL CONDITIONS`$C==1,])
       file_x$`INITIAL CONDITIONS`[1+j,]$C <- 1+j
@@ -85,6 +89,11 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
       file_x$`PLANTING DETAILS`[1+j,]$P <- 1+j
       file_x$`PLANTING DETAILS`[1+j,]$PDATE <- as.POSIXct(coords$plantingDate[i]) %m+% weeks(j)
       
+      if(fertilizer == T){
+        file_x$`FERTILIZERS (INORGANIC)` <- file_x$`FERTILIZERS (INORGANIC)` %>% add_row(!!!file_x$`FERTILIZERS (INORGANIC)`[file_x$`FERTILIZERS (INORGANIC)`$F==1,])
+        file_x$`FERTILIZERS (INORGANIC)`[1+j,]$F <- 1+j
+        file_x$`FERTILIZERS (INORGANIC)`[1+j,]$FDATE <- as.POSIXct(coords$plantingDate[i]) %m+% weeks(j)
+      }
       
       file_x$`HARVEST DETAILS` <- file_x$`HARVEST DETAILS` %>% add_row(!!!file_x$`HARVEST DETAILS`[file_x$`HARVEST DETAILS`$H==1,])
       file_x$`HARVEST DETAILS`[1+j,]$HDATE <- as.POSIXct(coords$harvestDate[i]) %m+% weeks(j)
@@ -97,7 +106,11 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------` <- file_x$`TREATMENTS                        -------------FACTOR LEVELS------------` %>% 
         add_row(!!!file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$N==1,])
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[1+j,]$N <- 1+j
-      file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[1+j,]$TNAME <- paste0("Planting + ", j ,"weeks")
+      if(fertilizer == T){
+        file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[1+j,]$TNAME <- paste0(file_x$`FERTILIZERS (INORGANIC)`$FERNAME[1], " + ", j ,"weeks")
+      }else {
+        file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[1+j,]$TNAME <- paste0("Planting + ", j ,"weeks")
+      }
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[1+j,]$IC <- 1+j
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[1+j,]$MP <- 1+j
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[1+j,]$MH <- 1+j
@@ -148,16 +161,17 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
 #' @param varietyid ID of the variety based on the cultivar file of DSSAT (column @VAR# in the cultivar file and parameter INGENO in the experimental file *.**X)
 #' @param zone Name of administrative level 1 for the specific location the experimental file is created
 #' @param level2 Name of administrative level 2 (part of the administrative level 1 or "zone") for the specific location the experimental file is created
+#' @param fertilizer if TRUE the parameter modifies the fertilizer date to be at planting
 #'
 #' @return
 #' @export
 #'
 #' @examples dssat.expfile(country="Mozambique", useCaseName = "Solidaridad", Crop = "Maize", AOI = FALSE,
 #'                         filex_temp= "ELZA0201.MZX", Planting_month_date=NULL,Harvest_month_date=NULL, 
-#'                         ID="TLID",season = 1, plantingWindow = 1,varietyid = "999991", zone ="Tete", level2="Macanga")
+#'                         ID="TLID",season = 1, plantingWindow = 1,varietyid = "999991", zone ="Tete", level2="Macanga",fertilizer=F)
 
 dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Planting_month_date=NULL,Harvest_month_date=NULL, 
-                          ID="TLID",season =1, plantingWindow=1,varietyid, zone, level2){  
+                          ID="TLID",season =1, plantingWindow=1,varietyid, zone, level2, fertilizer=F){  
   if(AOI == TRUE){
     if(is.null(Planting_month_date) | is.null(Harvest_month_date)){
       print("with AOI=TRUE, Planting_month_date, Harvest_month_date can not be null, please refer to the documentation and provide mm-dd for both parameters")
@@ -268,7 +282,7 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   
   results <- map(seq_along(grid[,1]), create_filex, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
                  coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
-                 zone=zone, level2=level2) %||% print("Progress:")
+                 zone=zone, level2=level2,fertilizer=fertilizer) %||% print("Progress:")
 
 }
 
