@@ -15,7 +15,7 @@ packages_required <- c("tidyverse", "lubridate","DSSAT")
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
 if(any(installed_packages == FALSE)){
-  install.packages(packages_required[!installed_packages])
+  install.packages(packages_required[!installed_packages])}
 
 # load required packages
 invisible(lapply(packages_required, library, character.only = TRUE))
@@ -120,7 +120,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     #Overwrite original FileX with new values
     DSSAT::write_filex(file_x,paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.',crop_code,'X'))
   }else{
-    setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
+    setwd(paste(path.to.extdata,paste0(zone,"/",'EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
     #Make proposed changes to FileX
     file_x$FIELDS$WSTA <- paste0("WHTE", formatC(width = 4, as.integer((i)), flag = "0"))
     file_x$FIELDS$ID_SOIL<-paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))
@@ -282,7 +282,4 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   
   results <- map(seq_along(grid[,1]), create_filex, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
                  coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
-                 zone=zone, level2=level2,fertilizer=fertilizer) %||% print("Progress:")
-
-}
-
+                 zone=zone, level2=level2,fertilizer=fertilizer) %||% print("Progress:")}
