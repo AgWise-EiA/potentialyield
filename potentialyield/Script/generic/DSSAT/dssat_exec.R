@@ -4,7 +4,7 @@
 # This script allows the creation of Batch file and run the model
 # Authors : P.Moreno, A. Sila, S. Mkuhlani, E.Bendito Garcia 
 # Credentials : EiA, 2024
-# Last modified April 08, 2024 
+# Last modified April 09, 2024 
 
 packages_required <- c("tidyverse", "DSSAT")
 
@@ -33,14 +33,8 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #' @examples rundssat(1)
 
 rundssat <-function(i,path.to.extdata,TRT,AOI=T,crop_code,zone,level2){
-  if(AOI==TRUE){
-    setwd(paste(path.to.extdata,paste0(zone,"/",level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
-  } else{
-    setwd(paste(path.to.extdata,paste0(zone,"/",'EXTE', formatC(width = 4, as.integer((i)), flag = "0")), sep = "/"))
-  }
+    setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
 
-
-  
   # Generate a DSSAT batch file using a tibble
   options(DSSAT.CSM="/opt/DSSAT/v4.8.1.40/dscsm048")
   tibble(FILEX=paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.',crop_code,'X'), TRTNO=TRT, RP=1, SQ=0, OP=0, CO=0) %>%
@@ -48,7 +42,7 @@ rundssat <-function(i,path.to.extdata,TRT,AOI=T,crop_code,zone,level2){
   # Run DSSAT-CSM
   run_dssat(file_name="DSSBatch.v48",suppress_output = TRUE)
   # Change output file name
-  file.rename("Summary.OUT", paste0(path.to.extdata, '/', 'EXTE', formatC(width = 4, as.integer((i)), flag = "0"), '/', 'EXTE', formatC(width = 4, as.integer((i)), flag = "0"), '.OUT'))
+  file.rename("Summary.OUT", paste0(path.to.extdata, 'EXTE', formatC(width = 4, as.integer((i)), flag = "0"), '/', 'EXTE', formatC(width = 4, as.integer((i)), flag = "0"), '.OUT'))
   gc()
 }
 
@@ -73,15 +67,17 @@ rundssat <-function(i,path.to.extdata,TRT,AOI=T,crop_code,zone,level2){
      
   #Set working directory to save the results
   if (AOI==TRUE){
-    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/", varietyid,"/", sep="")
+    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/", varietyid,"/",zone,"/",level2,"/", sep="")
     }else{
-    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/fieldData/",varietyid,"/", sep="")
+    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/fieldData/",varietyid,"/",zone,"/", sep="")
   }
   
   setwd(path.to.extdata)
   
-  folders <- list.dirs(".", full.names = FALSE, recursive = FALSE)
+  folders <- list.dirs(".", full.names = FALSE, recursive = TRUE)
+  folders <- grep(folders, pattern = ".ipynb", value = TRUE, invert = TRUE, fixed = TRUE)
   matching_folders <- folders[grepl("EXTE", folders, ignore.case = TRUE)]
+  
   
   crops <- c("Maize", "Potato", "Rice", "Soybean", "Wheat")
   cropcode_supported <- c("MZ","PT", "RI", "SB", "WH")
