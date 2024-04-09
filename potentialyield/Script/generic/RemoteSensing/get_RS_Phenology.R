@@ -1,14 +1,13 @@
-# Get Phenology derived from Remote Sensing  
+# Get Phenology (Planting and harvesting dates) derived from MODIS NDVI time series for the Use Case  
 
 # Introduction: 
-# Crop phenology extraction through time-series satellite images (MODIS EVI 250m 8-day interval;Aqua & Terra data OR Sentinel-3 NDVI 10-day 300) ################
-
-#i. Shaping of the data 
-#ii. Extracting the peak/max values and date 
-#iii.Extracting the date of the min values on the left part of the curve  
-#iv. Extracting the date of the min values on the right part of the curve
-#v. Extracting the actual planting date
-#vi.  Saving the rasters for actual planting date and harvesting date
+# This script allows the crop phenology extraction through MODIS NDVI time series. This script has to be run after get_MODISts_PreProc.R. It covers :
+# (1) - Shaping of the data 
+# (2) - Extracting the peak/max values and date 
+# (3) - Extracting the date of the min values on the left part of the curve  
+# (4) - Extracting the date of the min values on the right part of the curve
+# (5) - Extracting the actual planting date
+# (6) - Saving the rasters for actual planting date and harvesting date
 
 #### Getting started #######
 
@@ -26,7 +25,7 @@ suppressWarnings(suppressPackageStartupMessages(invisible(lapply(packages_requir
 # 2. Extracting phenology from NDVI time series  -------------------------------------------
 
 
-Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_year, Planting_month, Harvesting_month, overwrite){
+Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_year, Planting_month, Harvesting_month, overwrite = FALSE){
   
   #' @description Function that will allow to obtain the actual planting date and the harvesting date based on VI time series analysis
   #' @param country country name
@@ -307,10 +306,10 @@ Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_yea
   
 }
 
- country = "Kenya"
- useCaseName = "KALRO"
- Planting_year = 2017
- Harvesting_year = 2017
- Planting_month = "February"
- Harvesting_month = "November"
- overwrite = TRUE
+ # country = "Kenya"
+ # useCaseName = "KALRO"
+ # Planting_year = 2017
+ # Harvesting_year = 2017
+ # Planting_month = "February"
+ # Harvesting_month = "November"
+ # overwrite = TRUE
