@@ -2,7 +2,7 @@
 #################################################################################################################
 ## sourcing required packages
 #################################################################################################################
-packages_required <- c("doParallel", "foreach", "chirps", "tidyverse", "dplyr", "lubridate", "stringr","sf","purrr","DSSAT")
+packages_required <- c("chirps", "tidyverse", "dplyr", "lubridate", "stringr","sf","purrr","DSSAT")
 
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
@@ -340,7 +340,8 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel/", sep="")
   if(AOI == TRUE){
     Rainfall <- readRDS(paste(pathIn,zone, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
-
+    Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]
+    Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]
        #cat("Rain done")
     SolarRadiation <- readRDS(paste(pathIn,zone, "/solarRadiation_Season_", season, "_PointData_AOI.RDS", sep=""))
     SolarRadiation <- SolarRadiation[SolarRadiation$NAME_1 == zone, ]
@@ -381,13 +382,9 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
     Soil <- Soil[Soil$NAME_1 == zone, ]
     #Soil <- Soil[Soil$NAME_2 == level2, ]
   }
-  Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]
-  Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]
-  Soil <- Soil[Soil$NAME_1 == zone, ]
-  Soil <- Soil[Soil$NAME_2 == level2, ]
   names(Soil)[names(Soil)=="lat"] <- "latitude"
   names(Soil)[names(Soil)=="lon"] <- "longitude"
-  Soil <- na.omit(Soil)
+  #Soil <- na.omit(Soil) #Avoid removing some points due to missing variables (to check if that would make fail the simulations)
 
   if(AOI == TRUE){
     metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2")])
@@ -442,6 +439,11 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
 ## when AOI=FALSE (when we have observed field data) it is created weather and soil data by trial 
 ## (unique(longitude,latitude,"yearPi","yearHi","pl_j","hv_j"))
   coords <- metaData
+  if(AOI==TRUE){
+    coords <- coords[(coords$NAME_1 == zone & coords$NAME_2 == level2), ]
+  }else{
+    coords <- coords[(coords$NAME_1 == zone),]
+  }
   
   # if(AOI==TRUE){
   #   coords <- unique(metaData[,c("longitude", "latitude","NAME_1","NAME_2")])

@@ -243,9 +243,12 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   Soil <- na.omit(Soil)
   
   if(AOI == TRUE){
-    metaDataWeather <- as.data.frame(Rainfall[,1:7])
+    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2")])
+    
   }else{
-    metaDataWeather <- as.data.frame(Rainfall[,1:11])
+    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2",
+                                                 "yearPi","yearHi","pl_j","hv_j")])
+    
   }
   metaData_Soil <- Soil[,c("longitude", "latitude","NAME_1","NAME_2")]
   
@@ -253,10 +256,10 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   metaData <- merge(metaDataWeather,metaData_Soil)
     if(AOI==TRUE){
       number_years <- max(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))- min(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))
-      metaData <- unique(metaData[,1:4])
     }else{
       number_years <- 1
-      }
+    }
+  metaData <- unique(metaData[,c("longitude", "latitude","NAME_1","NAME_2")])
   coords <- merge(metaData,ground)
   coords <- coords[coords$NAME_1==zone,]
   grid <- as.matrix(coords)
