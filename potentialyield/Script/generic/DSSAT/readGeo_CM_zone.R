@@ -382,6 +382,7 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
     Soil <- Soil[Soil$NAME_1 == zone, ]
     #Soil <- Soil[Soil$NAME_2 == level2, ]
   }
+
   names(Soil)[names(Soil)=="lat"] <- "latitude"
   names(Soil)[names(Soil)=="lon"] <- "longitude"
   #Soil <- na.omit(Soil) #Avoid removing some points due to missing variables (to check if that would make fail the simulations)
