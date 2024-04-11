@@ -125,13 +125,14 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     file_x$FIELDS$WSTA <- paste0("WHTE", formatC(width = 4, as.integer((i)), flag = "0"))
     file_x$FIELDS$ID_SOIL<-paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))
     file_x$CULTIVARS$CR <- crop_code
+    file_x$CULTIVARS$INGENO <- varietyid
     file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate[i])
-    file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])  #Meanwhile the same date than the planting date## this is changed to a month prior to planting, right??
     file_x$`SIMULATION CONTROLS`$SDATE <- as.POSIXct(coords$startingDate[i])
     file_x$`HARVEST DETAILS`$HDATE <- as.POSIXct(coords$harvestDate[i])
     #file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$TNAME <- paste0("Trial planting")
     
     ex_profile <- suppressWarnings(DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i))," ", flag = "0"))))
+    file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])  #Meanwhile the same date than the planting date## this is changed to a month prior to planting, right??
     file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SDUL #Assume field capacity as initial condition
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
     #Overwrite original FileX with new values
@@ -226,9 +227,10 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
     names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate","startingDate")
     ground <- countryCoord
   }
-
-  pathIn <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/raw/geo_4cropModel/", sep="")
-
+#To verify if the weather inputs are going to be always in datasourcing result instead of potentialyield raw
+  #pathIn <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/raw/geo_4cropModel/", sep="")
+  pathIn <- paste("/home/jovyan/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/geo_4cropModel/", sep="")
+  
   if(AOI == TRUE){
     Rainfall <- readRDS(paste(pathIn,zone, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
     Soil <- readRDS(paste(pathIn,zone,"/SoilDEM_PointData_AOI_profile.RDS", sep=""))
@@ -273,8 +275,8 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   #Define working directory with template data
   path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/Landing/DSSAT", sep="")
   #We need to add more codes
-  crops <- c("Maize", "Potato", "Rice", "Soybean", "Wheat")
-  cropcode_supported <- c("MZ","PT", "RI", "SB", "WH")
+  crops <- c("Maize", "Potato", "Rice", "Soybean", "Wheat","Beans")
+  cropcode_supported <- c("MZ","PT", "RI", "SB", "WH","BN")
   
   cropid <- which(crops == Crop)
   crop_code <- cropcode_supported[cropid]
