@@ -382,9 +382,9 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
     #Soil <- Soil[Soil$NAME_2 == level2, ]
   }
   Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]
-  Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]
+  # Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]
   Soil <- Soil[Soil$NAME_1 == zone, ]
-  Soil <- Soil[Soil$NAME_2 == level2, ]
+  # Soil <- Soil[Soil$NAME_2 == level2, ]
   names(Soil)[names(Soil)=="lat"] <- "latitude"
   names(Soil)[names(Soil)=="lon"] <- "longitude"
   Soil <- na.omit(Soil)
