@@ -43,7 +43,7 @@ Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_yea
   #' 
   #' 
   ## 2.1. Creating a directory to store the phenology data ####
-  pathOut <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", "RSdata/transform/NDVI", sep="")
+  pathOut <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", "RSdata/results/NDVI", sep="")
   
   if (!dir.exists(pathOut)){
     dir.create(file.path(pathOut), recursive = TRUE)
