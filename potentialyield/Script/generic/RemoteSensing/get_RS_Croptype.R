@@ -16,7 +16,7 @@
 
 packages_required <- c("plotly", "raster", "rgdal", "gridExtra", "sp", "ggplot2", "caret", "signal", "timeSeries", "zoo", 
                        "pracma", "rasterVis", "RColorBrewer", "dplyr", "terra", "randomForest", "sf", "factoextra", "mclust",
-                       "tidyverse", "tidyterra")
+                       "tidyverse", "tidyterra", "ggspatial", "cowplot")
 
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
@@ -460,6 +460,48 @@ CropType <- function (country, useCaseName, level, admin_unit_name, Planting_yea
   pdf(ensemblemap, height = 8, width = 6)       # Export PDF
   print(ensemble.p)
   dev.off()
+  
+  ## 2.7. Aggregation of the results at administrative levels ####
+  # For the moment by default at admin level 2
+  countryShp2 <- geodata::gadm(country, level=2, path=pathOut)
+  
+  ## Compute the crop area per administrative unit
+  ensemble.area <- terra::zonal(ensemble, countryShp2, fun='sum', na.rm=TRUE, as.raster=TRUE) # get the number of cropped pixels
+  # convert into surfaces (ha)
+  ensemble.areaha <- ensemble.area*62500*0.0001 # (250 * 250) * 0.0001 (conversion from m² to ha)
+  
+  # Map
+  country_sf2 <- sf::st_as_sf(countryShp2)
+  area.p <- ggplot() +
+    geom_spatraster(data = ensemble.areaha, aes(fill = lyr.1)) +
+    scale_fill_stepsn(n.breaks = 9, colours = viridis::viridis(9),name="Crop surface (in ha)", na.value = "transparent")+ theme_bw()+
+    theme(legend.position = "right")+ 
+    geom_sf(data=country_sf2, fill=NA, color="white", linewidth=0.5)+
+    coord_sf(expand = FALSE, xlim=c(terra::ext(ensemble.area)[1], terra::ext(ensemble.area)[2]), ylim=c(terra::ext(ensemble.area)[3], terra::ext(ensemble.area)[4]))+
+    xlab("Longitude")+ ylab("Latitude") + ggtitle(label=paste0(crop, " surfaces in ha"))+
+    annotation_scale(style='bar', location='bl')+annotation_north_arrow(which_north = "true", location='tr', height=unit(1, 'cm'), width=unit(1, 'cm'))
+  
+  ## Compute the crop % per administrative unit
+  total <- ensemble.area
+  total[] <- 1 # to get the total number of pixels, classified as 1 and then sum them
+  total <- terra::zonal(total, countryShp2, fun='sum', na.rm=FALSE, as.raster=TRUE)
+  total <- round(((ensemble.area*100)/total),2)
+  
+  # Map
+  pct.p <- ggplot() +
+    geom_spatraster(data = total, aes(fill = lyr.1)) +
+    scale_fill_stepsn(n.breaks = 9, colours = viridis::magma(9),name="Crop cover (in %)", na.value = "transparent")+ theme_bw()+
+    theme(legend.position = "right")+ 
+    geom_sf(data=country_sf2, fill=NA, color="white", linewidth=0.5)+
+    coord_sf(expand = FALSE, xlim=c(terra::ext(ensemble.area)[1], terra::ext(ensemble.area)[2]), ylim=c(terra::ext(ensemble.area)[3], terra::ext(ensemble.area)[4]))+
+    xlab("Longitude")+ ylab("Latitude") + ggtitle(label=paste0(crop, " cover in %"))+
+    annotation_scale(style='bar', location='bl')+annotation_north_arrow(which_north = "true", location='tr', height=unit(1, 'cm'), width=unit(1, 'cm'))
+  
+  # Assemble maps
+  ass <- plot_grid(area.p, pct.p, nrow=2)
+  
+  ggsave(paste0(pathOut,"/useCase_", country, "_",useCaseName,"_",crop,"_",Planting_year,"_",Harvesting_year,"_Aggregated_Admin_Level2.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
+  ggsave(paste0(pathOut,"/useCase_", country, "_",useCaseName,"_",crop,"_",Planting_year,"_",Harvesting_year,"_Aggregated_Admin_Level2.png"), dpi=300, width = 8, height=6.89, units=c("in"))
   
   ## Delete the GDAM folder
   unlink(paste0(pathOut, '/gadm'), force=TRUE, recursive = TRUE)
