@@ -16,7 +16,7 @@
 
 packages_required <- c("plotly", "raster", "rgdal", "gridExtra", "sp", "ggplot2", "caret", "signal", "timeSeries", "zoo", 
                        "pracma", "rasterVis", "RColorBrewer", "dplyr", "terra", "randomForest", "sf", "factoextra", "mclust",
-                       "tidyverse", "tidyterra", "ggspatial", "cowplot")
+                       "tidyverse", "ggspatial", "cowplot", "tidyterra","lubridate")
 
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
@@ -31,7 +31,7 @@ Sys.setlocale("LC_ALL","English")
 
 # 2. Crop type mapping from NDVI time series-------------------------------------------
 
-CropType <- function (country, useCaseName, level, admin_unit_name, Planting_year, Harvesting_year, Planting_month, Harvesting_month, crop, coord, overwrite){
+CropType <- function (country, useCaseName, level, admin_unit_name, Planting_year, Harvesting_year, Planting_month, Harvesting_month, crop, coord, overwrite, CropMask=T){
   
   #' @description Function that allow to create a crop type domain map for the targeted crop. The input fill should be named as follow : "useCase_Country_useCaseName_Crop_Coordinates.csv"
   #' and should have at least 3 columns : lon, lat and Crop (ex Maize)
@@ -46,10 +46,11 @@ CropType <- function (country, useCaseName, level, admin_unit_name, Planting_yea
   #' @param Harvesting_month the harvesting month in full name (eg. September)
   #' @param crop targeted crop with the first letter in uppercase. The input file should have one column named with the crop name
   #' @param coord names of the columns with the lon lat column (ex. c(lon, lat))
+  #' @param CropMask default is TRUE. Does the cropland areas need to be masked?
   #'
   #' @return raster files of the targeted crop type domain at the Use Case level, the results will be written out in /agwise-potentialyield/dataops/potentialyield/Data/useCase/Crop/results/CropType
   #'
-  #' @examples CropType (country="Rwanda", useCaseName="RAB", Planting_year=2021, Harvesting_year=2022, Planting_month='August', Harvesting_month='February', crop='Maize', coord=c('lon','lat'), overwrite=TRUE)
+  #' @examples CropType (country="Rwanda", useCaseName="RAB", Planting_year=2021, Harvesting_year=2022, Planting_month='September', Harvesting_month='March', crop='Maize', coord=c('lon','lat'), CropMask = T, overwrite=TRUE)
   
   #' 
   #'
@@ -154,7 +155,22 @@ CropType <- function (country, useCaseName, level, admin_unit_name, Planting_yea
   stacked_SG_s <- stacked_SG[[grep(paste(seq, collapse = "|"), names(stacked_SG))]]
   rm(stacked_SG)
   
-  ### 2.3.2 Shape the ground data base ####
+  ### 2.3.2 Masking out of the cropped area ####
+  if (CropMask == TRUE){
+    
+    ## Get the cropland mask and resample to NDVI
+    cropmask <- list.files(paste0("/home/jovyan/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_",useCaseName, "/","MODISdata/raw/CropMask"), pattern=".tif$", full.names=T)
+    cropmask <- terra::rast(cropmask)
+    cropmask <- terra::mask(cropmask, countryShp)
+    ## reclassification 1 = crop, na = non crop
+    m1 <- cbind(c(40), 1)
+    cropmask <- terra::classify(cropmask, m1, others=NA)
+    cropmask <- terra::resample(cropmask, stacked_SG_s)
+    
+    stacked_SG_s <- stacked_SG_s*cropmask
+  }
+  
+  ### 2.3.4 Shape the ground data base ####
   # Subset the data between planting year and harvesting year
   groundData.s <- subset(groundData, year(groundData$planting_date)== Planting_year & year(groundData$harvest_date) == Harvesting_year)
   groundData.s <- groundData.s[, c(coord, 'crop')]
@@ -238,8 +254,8 @@ CropType <- function (country, useCaseName, level, admin_unit_name, Planting_yea
   # https://andiyudha.medium.com/classification-model-in-r-with-caret-package-373f20e31dd
   #https://f0nzie.github.io/machine_learning_compilation/comparison-of-six-linear-regression-algorithms.html
   ## prepare simple test suite
-  # 10-fold cross validation with 3 repeats
-  control <- trainControl(method="repeatedcv", number=10, repeats=3, verboseIter = TRUE)
+  # 5-fold cross validation with 3 repeats
+  control <- trainControl(method="repeatedcv", number=5, repeats=3, verboseIter = TRUE)
   metric <- "Accuracy"
   seed <- 7
   
@@ -500,8 +516,8 @@ CropType <- function (country, useCaseName, level, admin_unit_name, Planting_yea
   # Assemble maps
   ass <- plot_grid(area.p, pct.p, nrow=2)
   
-  ggsave(paste0(pathOut,"/useCase_", country, "_",useCaseName,"_",crop,"_",Planting_year,"_",Harvesting_year,"_Aggregated_Admin_Level2.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
-  ggsave(paste0(pathOut,"/useCase_", country, "_",useCaseName,"_",crop,"_",Planting_year,"_",Harvesting_year,"_Aggregated_Admin_Level2.png"), dpi=300, width = 8, height=6.89, units=c("in"))
+  ggsave(paste0(pathOut,"/useCase_", country, "_",useCaseName,"_",crop,"_",Planting_year,"_",Harvesting_year,"_Aggregated_Admin_Level2.pdf"), plot=ass, dpi=300, width = 8, height=6.89, units=c("in"))
+  ggsave(paste0(pathOut,"/useCase_", country, "_",useCaseName,"_",crop,"_",Planting_year,"_",Harvesting_year,"_Aggregated_Admin_Level2.png"), plot=ass, dpi=300, width = 8, height=6.89, units=c("in"))
   
   ## Delete the GDAM folder
   unlink(paste0(pathOut, '/gadm'), force=TRUE, recursive = TRUE)
@@ -513,8 +529,9 @@ CropType <- function (country, useCaseName, level, admin_unit_name, Planting_yea
 # admin_unit_name = NULL
 # Planting_year = 2021
 # Harvesting_year = 2022
-# Planting_month = "August"
-# Harvesting_month = "February"
+# Planting_month = "September"
+# Harvesting_month = "March"
 # overwrite = TRUE
 # crop = c("Maize")
 # coord = c("lon", "lat")
+# CropMask = T
