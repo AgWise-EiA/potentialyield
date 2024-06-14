@@ -1,7 +1,7 @@
 ---
 title: "AgWise Remote Sensing Module"
 author: "Payel Gosh, Louise Leroux, Amit Srivastava, Meklit Chernet"
-date: "2024-04-15"
+date: "2024-06-14"
 output: html_document
 ---
 
@@ -35,7 +35,7 @@ output: html_document
 
 generic folder : contains generalized scripts while the instances of running the generic scripts for specific country, use case and crop combinations is host in the later. For example:**~/agwise-datasourcing/dataops/datasourcing/Scripts/generic/get_MODISdata.R** is the source script which can be used for downloading MODIS NDVI data for any region of Interest.
 
-useCases folder :In this system, for every country, use case and crop combinations, a unique folder is created to host all the data sourcing scripts run for it and this is implemented in a standard way across all AgWise modules.For example, scripts in **~/agwise -datasourcing/dataops/datasourcing/Scripts/useCases/useCase_Kenya_Nandi/get_MODISdata_Kenya_Nandi.R** is run to get MODIS NDVI data of a particular year of Nandi county of Kenya.
+useCases folder :In this system, for every country, use case and crop combinations, a unique folder is created to host all the data sourcing scripts run for it and this is implemented in a standard way across all AgWise modules.For example, scripts in **~/agwise-datasourcing/dataops/datasourcing/Scripts/useCases/useCase_Rwanda_RAB/get_MODISdata_useCase_Rwanda_RAB.R** is run to get MODIS NDVI data of a particular year for the RAB use case in Rwanda.
 
 
 <br>
@@ -51,15 +51,15 @@ useCases folder :In this system, for every country, use case and crop combinatio
     - The downloaded unprocessed NDVI data are saved in the **MODISdata/raw/NDVI** folder. Please note that since the unprocessed NDVI data can be used for every type of crop, the data are stored at the useCase level.  
     - e.g., **~/agwise-datasourcing/dataops/datasourcing/Data/useCase_Rwanda_RAB/MODISdata/raw/NDVI/**
     - for season wise crop coordinates data and planting and harvesting date to be used as an input in crop type probability mapping. They are saved in **raw/<model>**.
-    - e.g., **~/agwise-datacuration/dataops/datacuration/Data/useCase_Rwanda_RAB/Potato/raw/data4RS.RDS**
+    - e.g., **~/agwise-datacuration/dataops/datacuration/Data/useCase_Rwanda_RAB/Maize/raw/data4RS.RDS**
     
   - **transform**
     - contains intermediate results of processing data.
-    - e.g., **~/agwise-datasourcing/dataops/datasourcing/Data/useCase_Rwanda_RAB/Potato/transform/NDVI**
+    - e.g., **~/agwise-datasourcing/dataops/datasourcing/Data/useCase_Rwanda_RAB/MODISdata/transform/NDVI**
     
   - **result** 
     - The model outputs are saved in the **result/<model>**
-    -  e.g., **~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Potato/result/CropType**
+    -  e.g., **~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Rwanda_RAB/Maize/result**
   
 <br>
 
@@ -83,12 +83,12 @@ useCases folder :In this system, for every country, use case and crop combinatio
  
   <br>
   
+  - for crop type probability access **get_RS_Croptype.R** in agwise-potentialyield folder, e.g., **~/agwise-potentialyield/dataops/potentialyield/Script/generic/RemoteSensing/get_RS_Croptype.R**. NOTA this step is optional, in case there is no ground data or not enough ground data to calibrate the model, the following step (phenology extraction) can be run on the crop mask only. 
+    
+ <br>
+  
   - for phenology extraction access **get_RS_Phenology.R** in agwise-potentialyield folder , e.g., **~/agwise-potentialyield/dataops/potentialyield/Script/generic/RemoteSensing/get_RS_Phenology.R**
    
-  <br>
-  
-  - for crop type probability access **get_RS_Croptype.R** in agwise-potentialyield folder, e.g., **~/agwise-potentialyield/dataops/potentialyield/Script/generic/RemoteSensing/get_RS_Croptype.R**
-  
 
  <br> 
 
@@ -99,11 +99,11 @@ The general Remote Sensing module workflow is presented in the figure below:
 
 ### <span style="color:blue;"> **3. Steps to download and preprocess satellite data (eg:useCase_Rwanda_RAB)**
 
-3.1. For input preparation part create a folder under *agwise-datasourcing/dataops/datasourcing/Scripts/useCases* .... In this folder you will have the  scripts to execute remote sensing functions for the initial processing of your use case - for example, **agwise-datasourcing/dataops/datasourcing/Scripts/useCases/useCase_Rwanda_RAB/**  (use the relevant useCase country usecaseName )
+3.1. For input preparation part create a folder under *agwise-datasourcing/dataops/datasourcing/Scripts/useCases* .... In this folder you will have the  scripts to execute remote sensing functions for the initial processing of your use case - for example, **~/agwise-datasourcing/dataops/datasourcing/Scripts/useCases/useCase_Rwanda_RAB/**  (use the relevant useCase country usecaseName )
 
 <br>
 
-3.2. Download the crop mask from GEE and place it in the **CropMask** folder of useCase, under the folder *useCase_Country_UseCaseName_Boundary* for example, **agwise-datasourcing/dataops/datasourcing/Data/useCase_Rwanda_RAB/MODISdata/raw/useCase_Rwanda_RAB_Boundary/CropMask/Cropmask_Rwn250m.tif**
+3.2. Download the crop mask from GEE and place it in the **CropMask** folder of useCase, under the folder *useCase_Country_UseCaseName_Boundary* for example, **~/agwise-datasourcing/dataops/datasourcing/Data/useCase_Rwanda_RAB/MODISdata/raw/CropMask/Cropmask_Rwn250m.tif**
   
 <br>
 
@@ -122,38 +122,38 @@ The general Remote Sensing module workflow is presented in the figure below:
 
 <br>
 
-### <span style="color:blue;"> **4. Steps to extract phenological characteristics (eg:useCase_Rwanda_RAB)**
+### <span style="color:blue;"> **4. Steps to extract crop type probability (eg:useCase_Rwanda_RAB)**
 
-4.1. For analysis create a folder under *agwise-potentialyield/dataops/potentialyield/Script/useCases* .... In this folder you will have the  scripts to execute remote sensing functions for the initial processing of your use case - for example, **agwise-potentialyield/dataops/potentialyield/Script/useCases/useCase_Rwanda_RAB/**  (use the relevant useCase country usecaseName )
-
-  
 <br>
-4.2. Copy the script 
- - **get_RS_Phenology_useCase_Rwanda_RAB.R** - this script sources -**get_RS_Phenology.R** which  extracts the planting and the harvesting dates from the MODIS NDVI Satellite data
-
-from **agwise-potentialyield/dataops/potentialyield/Script/useCases/useCase_Rwanda_RAB/**  to the folder you just created at step 3.1.
+4.1. Copy the script 
+ - **get_RS_Croptpye_useCase_Rwanda_RAB.R** - this script sources -**get_RS_Croptype.R** which allows to obtain a binary crop type probability maps from the MODIS NDVI Satellite data,  from **~/agwise-potentialyield/dataops/potentialyield/Script/useCases/useCase_Rwanda_RAB/**  to the folder you just created at step 3.1.
  
   
 <br>
 
-4.3.  Fill in the correct arguments in the script you copied, i.e., **get_RS_Phenology_useCase_Rwanda_RAB.R**  in your newly created folder:
+4.2.  Fill in the correct arguments in the script you copied, i.e., **get_RS_Croptype_useCase_Rwanda_RAB.R**  in your newly created folder:
+  - change the country, use case name,  planting year,planting month, harvest year,harvest month etc. For deeper understanding of the different arguments please refer to the documentation in *get_RS_Croptype.R*.
+
+<br>
+
+### <span style="color:blue;"> **5. Steps to extract phenological characteristics (eg:useCase_Rwanda_RAB)**
+
+5.1. For analysis create a folder under *agwise-potentialyield/dataops/potentialyield/Script/useCases* .... In this folder you will have the  scripts to execute remote sensing functions for the initial processing of your use case - for example, **~/agwise-potentialyield/dataops/potentialyield/Script/useCases/useCase_Rwanda_RAB/**  (use the relevant useCase country usecaseName )
+
+  
+<br>
+5.2. Copy the script 
+ - **get_RS_Phenology_useCase_Rwanda_RAB.R** - this script sources -**get_RS_Phenology.R** which  extracts the planting and the harvesting dates from the MODIS NDVI Satellite data from **~/agwise-potentialyield/dataops/potentialyield/Script/useCases/useCase_Rwanda_RAB/**  to the folder you just created at step 3.1.
+ 
+  
+<br>
+
+5.3.  Fill in the correct arguments in the script you copied, i.e., **get_RS_Phenology_useCase_Rwanda_RAB.R**  in your newly created folder:
   - change the country, use case name,  planting year,planting month, harvest year,harvest month etc. For deeper understanding of the different arguments please refer to the documentation in *get_RS_Phenology.R*.
 
 <br>
 
-### <span style="color:blue;"> **5. Steps to extract crop type probability (eg:useCase_Rwanda_RAB)**
 
-<br>
-5.1. Copy the script 
- - **get_RS_Croptpye_useCase_Rwanda_RAB.R** - this script sources -**get_RS_Croptype.R** which allows to obtain a binary crop type probability maps from the MODIS NDVI Satellite data,  from **agwise-potentialyield/dataops/potentialyield/Script/useCases/useCase_Rwanda_RAB/**  to the folder you just created at step 3.1.
- 
-  
-<br>
-
-5.2.  Fill in the correct arguments in the script you copied, i.e., **get_RS_Croptype_useCase_Rwanda_RAB.R**  in your newly created folder:
-  - change the country, use case name,  planting year,planting month, harvest year,harvest month etc. For deeper understanding of the different arguments please refer to the documentation in *get_RS_Croptype.R*.
-
-<br>
 
 ###############################################################################
 
@@ -162,30 +162,63 @@ from **agwise-potentialyield/dataops/potentialyield/Script/useCases/useCase_Rwan
 
 ```
 #################################################################################################################
-## Download Time series satellite data (get_MODISdata)
+## source "get_MODISdata.R" function and execute it for Rwanda RAB use case
+#################################################################################################################
+
+source("~/agwise-datasourcing/dataops/datasourcing/Scripts/generic/get_MODISdata.R")
+download_MODIS(country = "Rwanda", useCaseName = "RAB",level=0, admin_unit_name = NULL, Start_year = 2021, End_year = 2022, overwrite = TRUE)
+
+#################################################################################################################
+## source "get_MODISts_PreProc.R" function and execute it for Rwanda RAB use case
 #################################################################################################################
 
 source("~/agwise-datasourcing/dataops/datasourcing/Scripts/generic/get_MODISts_PreProc.R")
-download_MODIS(country = "Rwanda",level= 1,admin_unit_name ="NULL", useCaseName= "RAB",Start_year = 2021, End_year = 2021, overwrite = TRUE)
+smooth_rasterTS(country = "Rwanda", useCaseName = "RAB",Planting_year = 2021, Harvesting_year = 2022, overwrite = TRUE, CropMask=TRUE)
 
 #################################################################################################################
-## Smooth the data to fill in gaps
-#################################################################################################################
-source("~/agwise-datasourcing/dataops/datasourcing/Scripts/generic/get_MODISts_PreProc.R")
-smooth_rasterTS(country = "Rwanda", useCaseName = "RAB",Planting_year = 2021, Harvesting_year = 2021, overwrite = TRUE)
-
-#################################################################################################################
-## Extract phenological characterics
-#################################################################################################################
-
-source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/RemoteSensing/get_RS_Phenology.R")
-Phenology_rasterTS(country = "Rwanda", useCaseName = "RAB",Planting_year = 2021, Harvesting_year = 2021, Planting_month = "February",Harvesting_month = "July", overwrite = TRUE)
-
-#################################################################################################################
-## Extract crop type probability map
+## source "get_RS_Croptype.R" functions and execute it for Rwanda RAB Maize use case
 #################################################################################################################
 
 source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/RemoteSensing/get_RS_Croptype.R")
-CropType(country = "Rwanda", useCaseName = "RAB", level = 1, admin_unit_name = "NULL", Planting_year = 2021, Harvesting_year = 2021, Planting_month = "February",Harvesting_month = "July", crop= "Maize", coord = c("lon", "lat"), overwrite = TRUE)
 
+country = "Rwanda"
+useCaseName = "RAB"
+level = 1
+admin_unit_name = NULL
+Planting_year = 2021
+Harvesting_year = 2022
+Planting_month = "September"
+Harvesting_month = "June"
+overwrite = TRUE
+crop = c("Maize")
+coord = c("lon", "lat")
+CropMask = FALSE
+
+CropType (country, useCaseName, level, admin_unit_name, Planting_year, Harvesting_year, Planting_month, Harvesting_month, crop, coord, overwrite, CropMask)
+
+#################################################################################################################
+## source "get_RS_Phenology.R" function and execute it for Rwanda RAB use case
+#################################################################################################################
+
+source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/RemoteSensing/get_RS_Phenology.R")
+
+country = "Rwanda"
+useCaseName = "RAB"
+level = 1
+admin_unit_name = NULL
+crop= "Maize"
+Planting_year = 2021
+Harvesting_year = 2022
+Planting_month = "September"
+Harvesting_month = "March"
+emergence = 5
+overwrite = TRUE
+CropMask = TRUE
+CropType = TRUE
+thr= c(0.50, 0.30)
+validation = TRUE
+coord = c('lon', 'lat')
+
+Phenology_rasterTS(country, useCaseName, crop, level, admin_unit_name, Planting_year, Harvesting_year, Planting_month, Harvesting_month, 
+                   emergence, CropMask=T, CropType=T, coord, thr=c(0.50,0.30), validation=T, overwrite)
 ```
