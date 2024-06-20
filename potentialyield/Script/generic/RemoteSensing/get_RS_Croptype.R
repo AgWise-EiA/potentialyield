@@ -16,7 +16,7 @@
 
 packages_required <- c("plotly", "raster", "rgdal", "gridExtra", "sp", "ggplot2", "caret", "signal", "timeSeries", "zoo", 
                        "pracma", "rasterVis", "RColorBrewer", "dplyr", "terra", "randomForest", "sf", "factoextra", "mclust",
-                       "tidyverse", "tidyterra")
+                       "tidyverse", "ggspatial", "cowplot", "tidyterra","lubridate")
 
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
@@ -31,12 +31,14 @@ Sys.setlocale("LC_ALL","English")
 
 # 2. Crop type mapping from NDVI time series-------------------------------------------
 
-CropType <- function (country, useCaseName, Planting_year, Harvesting_year, Planting_month, Harvesting_month, crop, coord, overwrite){
+CropType <- function (country, useCaseName, level, admin_unit_name, Planting_year, Harvesting_year, Planting_month, Harvesting_month, crop, coord, overwrite, CropMask=T){
   
   #' @description Function that allow to create a crop type domain map for the targeted crop. The input fill should be named as follow : "useCase_Country_useCaseName_Crop_Coordinates.csv"
   #' and should have at least 3 columns : lon, lat and Crop (ex Maize)
   #' @param country country name
   #' @param useCaseName use case name  name
+  #' @param level the admin unit level, in integer, to be downloaded -  Starting with 0 for country, then 1 for the first level of subdivision (from 1 to 3). Default is zero
+  #' @param admin_unit_name name of the administrative level to be download, default is NULL (when level=0) , else, to be specified as a vector (eg. c("Nandi"))
   #' @param overwrite default is FALSE 
   #' @param Planting_year the planting year in integer
   #' @param Harvesting_year the harvesting year in integer
@@ -44,10 +46,11 @@ CropType <- function (country, useCaseName, Planting_year, Harvesting_year, Plan
   #' @param Harvesting_month the harvesting month in full name (eg. September)
   #' @param crop targeted crop with the first letter in uppercase. The input file should have one column named with the crop name
   #' @param coord names of the columns with the lon lat column (ex. c(lon, lat))
+  #' @param CropMask default is TRUE. Does the cropland areas need to be masked?
   #'
   #' @return raster files of the targeted crop type domain at the Use Case level, the results will be written out in /agwise-potentialyield/dataops/potentialyield/Data/useCase/Crop/results/CropType
   #'
-  #' @examples CropType (country="Rwanda", useCaseName="RAB", Planting_year=2021, Harvesting_year=2022, Planting_month='August', Harvesting_month='February', crop='Maize', coord=c('lon','lat'), overwrite=TRUE)
+  #' @examples CropType (country="Rwanda", useCaseName="RAB", Planting_year=2021, Harvesting_year=2022, Planting_month='September', Harvesting_month='March', crop='Maize', coord=c('lon','lat'), CropMask = T, overwrite=TRUE)
   
   #' 
   #'
@@ -69,12 +72,39 @@ CropType <- function (country, useCaseName, Planting_year, Harvesting_year, Plan
   stacked_SG <- terra::rast(listRaster_SG) #stack
   
   ## Read the ground data ##
-  pathInG <- paste("/home/jovyan/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_",useCaseName, "/", "Grounddata/", sep="")
-  listGroundData <- list.files(path=pathInG, pattern=paste0('useCase_',country,'_', useCaseName,'_', crop,'_Coordinates.csv'),full.names=T)
+  pathInG <- paste("/home/jovyan/agwise-datacuration/dataops/datacuration/Data/useCase_", country, "_",useCaseName, "/", crop, "/raw/", sep="")
+  listGroundData <- list.files(path=pathInG, pattern = "data4RS.RDS", full.names = T)
   
   # Check which type of separator before to open the data
-  L <- readLines(listGroundData, n=1)
-  groundData <- if (grepl(";", L)) read.csv2(listGroundData) else read.csv(listGroundData)
+  #L <- readLines(listGroundData, n=1)
+  #groundData <- if (grepl(";", L)) read.csv2(listGroundData) else read.csv(listGroundData)
+  
+  groundData <- readRDS(listGroundData)
+  
+  ## Read the administrative boundary data ##
+  # Read the relevant shape file from gdam to be used to crop the global data
+  countryShp <- geodata::gadm(country, level, path=pathOut)
+  
+  # Case admin_unit_name == NULL
+  if (is.null(admin_unit_name)){
+    countryShp <-countryShp
+  }
+  
+  # Case admin_unit_name is not null 
+  if (!is.null(admin_unit_name)) {
+    if (level == 0) {
+      print("admin_unit_name is not null, level can't be eq. to 0 and should be set between 1 and 3")
+    }
+    if (level == 1){
+      countryShp <- subset(countryShp, countryShp$NAME_1 %in% admin_unit_name)
+    } 
+    if (level == 2){
+      countryShp <- subset(countryShp, countryShp$NAME_2 %in% admin_unit_name)
+    }
+    if (level == 3){
+      countryShp <- subset(countryShp, countryShp$NAME_3 %in% admin_unit_name)
+    }
+  }
   
   ## 2.3. Preprocess the relevant data ####
   ### 2.3.1 Subset the cropping season +/- 15 days for raster ####
@@ -125,8 +155,25 @@ CropType <- function (country, useCaseName, Planting_year, Harvesting_year, Plan
   stacked_SG_s <- stacked_SG[[grep(paste(seq, collapse = "|"), names(stacked_SG))]]
   rm(stacked_SG)
   
-  ### 2.3.2 Shape the ground data base ####
-  groundData.s <- groundData[, c(coord, crop)]
+  ### 2.3.2 Masking out of the cropped area ####
+  if (CropMask == TRUE){
+    
+    ## Get the cropland mask and resample to NDVI
+    cropmask <- list.files(paste0("/home/jovyan/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_",useCaseName, "/","MODISdata/raw/CropMask"), pattern=".tif$", full.names=T)
+    cropmask <- terra::rast(cropmask)
+    cropmask <- terra::mask(cropmask, countryShp)
+    ## reclassification 1 = crop, na = non crop
+    m1 <- cbind(c(40), 1)
+    cropmask <- terra::classify(cropmask, m1, others=NA)
+    cropmask <- terra::resample(cropmask, stacked_SG_s)
+    
+    stacked_SG_s <- stacked_SG_s*cropmask
+  }
+  
+  ### 2.3.4 Shape the ground data base ####
+  # Subset the data between planting year and harvesting year
+  groundData.s <- subset(groundData, year(groundData$planting_date)== Planting_year & year(groundData$harvest_date) == Harvesting_year)
+  groundData.s <- groundData.s[, c(coord, 'crop')]
   groundData.s$ID <- seq(1,nrow(groundData.s)) #For subsequent sub-setting
   groundData.s <- na.omit(groundData.s)
   #groundData.s <- subset(groundData.s, groundData.s$maize %in% 1) #### TEMPORARY TO BE REMOVED
@@ -168,7 +215,7 @@ CropType <- function (country, useCaseName, Planting_year, Harvesting_year, Plan
   # Check the number of observation in the initial ground truth data and considered a final MC database of x2 the initial one
   n <- nrow(my.sf.point)
   sr.pca <- terra::spatSample(stacked_SG_pca, n*2, na.rm=TRUE, method="random", xy=TRUE) 
-  mc <- Mclust(sr.pca[,-c(1,2)]) # to not account for x y
+  mc <- Mclust(sr.pca[,-c(1,2)], G=2:5) # to not account for x y ; Default number of clusters from 2 to 5
   
   ## 2- Applied the model-based clustering to the targeted crop ground data
   groundData.pca <- terra::extract(stacked_SG_pca,my.sf.point, xy=TRUE)
@@ -207,8 +254,8 @@ CropType <- function (country, useCaseName, Planting_year, Harvesting_year, Plan
   # https://andiyudha.medium.com/classification-model-in-r-with-caret-package-373f20e31dd
   #https://f0nzie.github.io/machine_learning_compilation/comparison-of-six-linear-regression-algorithms.html
   ## prepare simple test suite
-  # 10-fold cross validation with 3 repeats
-  control <- trainControl(method="repeatedcv", number=10, repeats=3, verboseIter = TRUE)
+  # 5-fold cross validation with 3 repeats
+  control <- trainControl(method="repeatedcv", number=5, repeats=3, verboseIter = TRUE)
   metric <- "Accuracy"
   seed <- 7
   
@@ -417,7 +464,6 @@ CropType <- function (country, useCaseName, Planting_year, Harvesting_year, Plan
  
   
   ## 2.6. Mapping of the final results ####
-  countryShp <- geodata::gadm(country, level = 1, path=pathOut)
   country_sf <- sf::st_as_sf(countryShp)
  ensemble.p <-  ggplot() +
     geom_spatraster(data = ensemble, aes(fill=lyr.1), na.rm=TRUE) +
@@ -431,14 +477,61 @@ CropType <- function (country, useCaseName, Planting_year, Harvesting_year, Plan
   print(ensemble.p)
   dev.off()
   
+  ## 2.7. Aggregation of the results at administrative levels ####
+  # For the moment by default at admin level 2
+  countryShp2 <- geodata::gadm(country, level=2, path=pathOut)
+  
+  ## Compute the crop area per administrative unit
+  ensemble.area <- terra::zonal(ensemble, countryShp2, fun='sum', na.rm=TRUE, as.raster=TRUE) # get the number of cropped pixels
+  # convert into surfaces (ha)
+  ensemble.areaha <- ensemble.area*62500*0.0001 # (250 * 250) * 0.0001 (conversion from m² to ha)
+  
+  # Map
+  country_sf2 <- sf::st_as_sf(countryShp2)
+  area.p <- ggplot() +
+    geom_spatraster(data = ensemble.areaha, aes(fill = lyr.1)) +
+    scale_fill_stepsn(n.breaks = 9, colours = viridis::viridis(9),name="Crop surface (in ha)", na.value = "transparent")+ theme_bw()+
+    theme(legend.position = "right")+ 
+    geom_sf(data=country_sf2, fill=NA, color="white", linewidth=0.5)+
+    coord_sf(expand = FALSE, xlim=c(terra::ext(ensemble.area)[1], terra::ext(ensemble.area)[2]), ylim=c(terra::ext(ensemble.area)[3], terra::ext(ensemble.area)[4]))+
+    xlab("Longitude")+ ylab("Latitude") + ggtitle(label=paste0(crop, " surfaces in ha"))+
+    annotation_scale(style='bar', location='bl')+annotation_north_arrow(which_north = "true", location='tr', height=unit(1, 'cm'), width=unit(1, 'cm'))
+  
+  ## Compute the crop % per administrative unit
+  total <- ensemble.area
+  total[] <- 1 # to get the total number of pixels, classified as 1 and then sum them
+  total <- terra::zonal(total, countryShp2, fun='sum', na.rm=FALSE, as.raster=TRUE)
+  total <- round(((ensemble.area*100)/total),2)
+  
+  # Map
+  pct.p <- ggplot() +
+    geom_spatraster(data = total, aes(fill = lyr.1)) +
+    scale_fill_stepsn(n.breaks = 9, colours = viridis::magma(9),name="Crop cover (in %)", na.value = "transparent")+ theme_bw()+
+    theme(legend.position = "right")+ 
+    geom_sf(data=country_sf2, fill=NA, color="white", linewidth=0.5)+
+    coord_sf(expand = FALSE, xlim=c(terra::ext(ensemble.area)[1], terra::ext(ensemble.area)[2]), ylim=c(terra::ext(ensemble.area)[3], terra::ext(ensemble.area)[4]))+
+    xlab("Longitude")+ ylab("Latitude") + ggtitle(label=paste0(crop, " cover in %"))+
+    annotation_scale(style='bar', location='bl')+annotation_north_arrow(which_north = "true", location='tr', height=unit(1, 'cm'), width=unit(1, 'cm'))
+  
+  # Assemble maps
+  ass <- plot_grid(area.p, pct.p, nrow=2)
+  
+  ggsave(paste0(pathOut,"/useCase_", country, "_",useCaseName,"_",crop,"_",Planting_year,"_",Harvesting_year,"_Aggregated_Admin_Level2.pdf"), plot=ass, dpi=300, width = 8, height=6.89, units=c("in"))
+  ggsave(paste0(pathOut,"/useCase_", country, "_",useCaseName,"_",crop,"_",Planting_year,"_",Harvesting_year,"_Aggregated_Admin_Level2.png"), plot=ass, dpi=300, width = 8, height=6.89, units=c("in"))
+  
+  ## Delete the GDAM folder
+  unlink(paste0(pathOut, '/gadm'), force=TRUE, recursive = TRUE)
 }
 
 # country = "Rwanda"
 # useCaseName = "RAB"
+# level = 1
+# admin_unit_name = NULL
 # Planting_year = 2021
 # Harvesting_year = 2022
-# Planting_month = "August"
-# Harvesting_month = "February"
+# Planting_month = "September"
+# Harvesting_month = "March"
 # overwrite = TRUE
 # crop = c("Maize")
 # coord = c("lon", "lat")
+# CropMask = T
