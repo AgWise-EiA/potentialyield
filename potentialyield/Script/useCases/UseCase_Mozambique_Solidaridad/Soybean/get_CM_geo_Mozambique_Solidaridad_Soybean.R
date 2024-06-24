@@ -1,7 +1,12 @@
+
+
 #################################################################################################################
 ## source "get_rain_temp_summary.R" function and get weather data 
 #################################################################################################################
-source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Testing/readGeo_CM_V2.R")
+# source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/readGeo_CM_zone.R")
+
+# source("~/transform-modelling/AgWise_Siya/readGeo_CM_zone_SM.R") #local copy
+source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/readGeo_CM_zone.R") #Server copy
 
 #################################################################################################################
 ## Create soil and weather data in DSSAT format for trial data
@@ -12,18 +17,29 @@ source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Test
 #################################################################################################################
 ## Create soil and weather data in DSSAT format for AOI data
 #################################################################################################################
-country <- "Rwanda"
-countryShp <- geodata::gadm(country, level = 2, path='.')
-prov <- unique(countryShp$NAME_1)
+country <- "Mozambique"
+useCaseName <- "Solidaridad"
+Crop <- "Soybean"
+variety <- "999991"
 
-for (i in 1:length(prov)){
-  geoData_AOI <- readGeo_CM(country="Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = TRUE, season=1, Province = prov[i])
+
+inputDataZ <- readRDS("~/agwise-datacuration/dataops/datacuration/Data/useCase_Mozambique_Solidaridad/Soybean/result/AOI_GPS.RDS")
+
+# provinces <- c('Cabo', Manica, Nampula, Tete, Zambezia)
+provinces <-  'Zambezia'
+
+mz <- which(inputDataZ$NAME_1 %in% provinces)
+
+inputDataZ <-  inputDataZ[mz,]
+
+for (z in 1:length(provinces)){
+  district<-unique(inputDataZ$NAME_2[inputDataZ$NAME_1==provinces[z]])
+  for (i in 1:length(district)){
+     print(provinces[z])
+     print(district[i])
+  geoData_AOI <- readGeo_CM_zone(country=country,  useCaseName = useCaseName , Crop = Crop, AOI = TRUE, season=1, zone = provinces[z],level2=district[i],variety=variety)
   }
-
-
-
-
-
+}
 
 
 

@@ -1,10 +1,9 @@
 #################################################################################################################
-## source "dssat_summary_ONI.R" functions and execute it for Kenya KALRO Beans use case
+## source "dssat_summary_ONI.R" functions and execute it for Malawi Soybean use case
 #################################################################################################################
 
 source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Testing/dssat_summary_ONI_v3.R")
-#source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/dssat_summary_ONI_v2.R")
-country="Zambia"
+country="Malawi"
 useCaseName="Solidaridad"
 Crop = "Soybean"
 Extent = "AOI"

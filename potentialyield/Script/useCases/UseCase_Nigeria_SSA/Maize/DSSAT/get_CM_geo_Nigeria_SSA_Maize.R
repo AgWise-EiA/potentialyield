@@ -1,6 +1,3 @@
-#################################################################################################################
-## source "get_rain_temp_summary.R" function and get weather data 
-#################################################################################################################
 source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Testing/readGeo_CM_V2.R")
 
 #################################################################################################################
@@ -12,20 +9,12 @@ source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Test
 #################################################################################################################
 ## Create soil and weather data in DSSAT format for AOI data
 #################################################################################################################
-country <- "Rwanda"
+country <- "Nigeria"
 countryShp <- geodata::gadm(country, level = 2, path='.')
 prov <- unique(countryShp$NAME_1)
 
 for (i in 1:length(prov)){
-  geoData_AOI <- readGeo_CM(country="Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = TRUE, season=1, Province = prov[i])
-  }
-
-
-
-
-
-
-
+  geoData_AOI <- readGeo_CM(country="Nigeria",  useCaseName = "SSA", Crop = "Maize", AOI = TRUE, season=1, Province = prov[i])}
 
 
 

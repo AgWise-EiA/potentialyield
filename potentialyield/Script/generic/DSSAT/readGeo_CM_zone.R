@@ -1,6 +1,6 @@
 
 #################################################################################################################
-## sourcing required packages                                                                                 ##
+## sourcing required packages ##
 #################################################################################################################
 packages_required <- c("chirps", "tidyverse", "dplyr", "lubridate", "stringr","sf","purrr","DSSAT")
 
@@ -337,7 +337,7 @@ if(AOI==TRUE){
 #' @examples readGeo_CM(country = "Kenya",  useCaseName = "KALRO", Crop = "Maize", AOI = TRUE, season=1, Province = "Kiambu")
 readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, zone,level2,varietyid){
   cat(zone)
-  pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel/", sep="")
+  pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel/", zone, '/', sep="")
   if(AOI == TRUE){
     Rainfall <- readRDS(paste(pathIn,zone, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
     Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]

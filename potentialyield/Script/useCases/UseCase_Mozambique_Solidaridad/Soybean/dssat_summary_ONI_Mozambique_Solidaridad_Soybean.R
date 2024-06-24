@@ -3,8 +3,7 @@
 #################################################################################################################
 
 source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Testing/dssat_summary_ONI_v3.R")
-#source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/dssat_summary_ONI_v2.R")
-country="Zambia"
+country="Mozambique"
 useCaseName="Solidaridad"
 Crop = "Soybean"
 Extent = "AOI"

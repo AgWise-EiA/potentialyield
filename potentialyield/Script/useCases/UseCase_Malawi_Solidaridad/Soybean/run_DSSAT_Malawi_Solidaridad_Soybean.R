@@ -1,11 +1,11 @@
 #################################################################################################################
 ## Create experimental data in DSSAT format
 #################################################################################################################
-# 
+
 #source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/dssat_expfile.R") #Not working
-# source('~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Testing/dssat_expfile_provs.R')
-# prov <- list.files('~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Malawi_Solidaridad/Soybean/transform/DSSAT/AOI/880002')
-# varieties <- c("880002","880004","899996")
+# source('~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Testing/dssat_expfile_provs.R') #working
+# prov <- list.files('~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Malawi_Solidaridad/Soybean/transform/DSSAT/AOI/999911')
+# varieties <- c("999911","999912","999913")
 # 
 # for (j in 1:length(varieties)){
 #   for (i in 1:length(prov)){
@@ -21,10 +21,13 @@
 #################################################################################################################
 
 
-prov <- list.files('~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Malawi_Solidaridad/Soybean/transform/DSSAT/AOI/880002')
-varieties <- c("880002","880004","899996")
+prov <- list.files('~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Malawi_Solidaridad/Soybean/transform/DSSAT/AOI/999911')
+# varieties <- c("999911","999912","999913")
+varieties <- c("999913")
 
-source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/dssat_exec.R")
+# source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/dssat_exec.R")
+source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Testing/dssat_exec_sb.R")
+
  for (j in 1:length(varieties)){
    for (i in 1:length(prov)){
      execmodel_AOI <-dssat.exec(country = "Malawi",  useCaseName = "Solidaridad", Crop = "Soybean",
