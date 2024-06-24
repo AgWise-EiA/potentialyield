@@ -1,6 +1,6 @@
 Data/*
-*/.ipynb_checkpoints/*
+**/.ipynb_checkpoints/
 /Script/generic/DSSAT/Testing/*
 /Script/generic/DSSAT/LouiseDoNotModify/
-*-checkpoint.R
+*-checkpoint.*
 *.Rout
