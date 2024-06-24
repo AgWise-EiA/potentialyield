@@ -6,6 +6,8 @@ source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/RemoteSens
 
 country = "Rwanda"
 useCaseName = "RAB"
+level= 1
+admin_unit_name = NULL
 Planting_year = 2021
 Harvesting_year = 2022
 Planting_month = "August"
@@ -14,4 +16,4 @@ overwrite = TRUE
 crop = c("Potato")
 coord = c("lon", "lat")
 
-CropType (country, useCaseName, Planting_year, Harvesting_year, Planting_month, Harvesting_month, crop, coord, overwrite)
+CropType (country, useCaseName, level, admin_unit_name, Planting_year, Harvesting_year, Planting_month, Harvesting_month, crop, coord, overwrite)

@@ -2,10 +2,25 @@
 ## Create experimental data in DSSAT format
 #################################################################################################################
 
-source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/dssat_expfile.R")
-expdata <- dssat.expfile(country = "Ghana",  useCaseName = "useCaseName", Crop = "Maize", AOI = FALSE, filex_temp="ESAC8501.SBX", Planting_month_date = NULL,Harvest_month_date=NULL,jobs=10, ID="TLID",season =NULL, plantingWindow=NULL)
+source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/dssat_expfile_zone.R")
+prov <- list.files('~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Ghana_useCaseName/Maize/transform/DSSAT/AOI/SC_719')
+varieties <- c("SC_719")
 
-# expdata_AOI <- dssat.expfile(country = "Ghana",  useCaseName = "GAIP", Crop = "Maize", AOI = TRUE, filex_temp="ESAC8501.SBX", Planting_month_date="10-15", Harvest_month_date="05-15",jobs=10, ID="TLID",season =1, plantingWindow=10)
+for (j in 1:length(varieties)){
+  for (i in 1:length(prov)){
+    expdata_AOI <- dssat.expfile(country = "Ghana",  useCaseName = "useCaseName", Crop = "Maize",
+                                 AOI = FALSE, filex_temp="KEAG8104.MZX", Planting_month_date=NULL,
+                                 Harvest_month_date=NULL,season =NULL, plantingWindow=NULL,
+                                 ID="TLID",varietyid = "GH0674", zone ="Ahafo", level2="Macanga")
+  }
+}
+
+
+dssat.expfile(country="Zambia", useCaseName = "Solidaridad", Crop = "Maize", AOI = TRUE,
+                                       filex_temp="KEAG8104.MZX", Planting_month_date="11-01",Harvest_month_date="07-30", 
+                                      ID="TLID",season = 1, plantingWindow = 4,varietyid = "999991", zone ="North-Western", level2="Chavuma")
+
+
 
 #################################################################################################################
 ## Run the DSSAT model

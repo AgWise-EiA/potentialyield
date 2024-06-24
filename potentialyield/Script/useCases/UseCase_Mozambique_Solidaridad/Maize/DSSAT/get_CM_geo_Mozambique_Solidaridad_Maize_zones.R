@@ -24,7 +24,9 @@ inputDataZ <- readRDS("~/agwise-datacuration/dataops/datacuration/Data/useCase_M
 
 #provinces <-  c('Nampula', 'Cabo Delgado', 'Tete', 'Zambezia', 'Manica')
 
-provinces <-  c('Tete', 'Zambezia')
+#provinces <-  c('Tete', 'Zambezia')
+
+provinces <-  c('Nampula', 'Cabo Delgado', 'Manica')
 
 mz <- which(inputDataZ$NAME_1 %in% provinces)
 

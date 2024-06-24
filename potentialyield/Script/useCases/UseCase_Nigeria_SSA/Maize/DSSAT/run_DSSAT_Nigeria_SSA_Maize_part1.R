@@ -5,7 +5,7 @@
 source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Testing/dssat_expfile_provs_testing_V2.R") #with high initial soil moisture.
 
 prov <- list.files('~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Nigeria_SSA/Maize/transform/DSSAT/AOI/234001')
-varieties <- c("234001","234002","234003")
+varieties <- c("234001")
 
 for (j in 1:length(varieties)){
   for (i in 1:length(prov)){
@@ -20,17 +20,16 @@ for (j in 1:length(varieties)){
 # ## Run the DSSAT model
 # #################################################################################################################
 
-# prov <- list.files('~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Nigeria_SSA/Maize/transform/DSSAT/AOI/234002/')
-# # varieties <- c("234001","234002","234003")
-# varieties <- c("234002")
-# 
-# source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Testing/dssat_exec.R")
-# for (j in 1:length(varieties)){
-#   for (i in 1:length(prov)){
-#     execmodel_AOI <-dssat.exec(country = "Nigeria",  useCaseName = "SSA", Crop = "Maize",
-#                                AOI = TRUE,TRT=1:30,ingenoid=varieties[j],Province = prov[i])
-#   }
-# }
+prov <- list.files('~/agwise-potentialyield/dataops/potentialyield/Data/useCase_Nigeria_SSA/Maize/transform/DSSAT/AOI/234001/')
+varieties <- c("234001")
+
+source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/Testing/dssat_exec.R")
+for (j in 1:length(varieties)){
+  for (i in 1:length(prov)){
+    execmodel_AOI <-dssat.exec(country = "Nigeria",  useCaseName = "SSA", Crop = "Maize",
+                               AOI = TRUE,TRT=1:30,ingenoid=varieties[j],Province = prov[i])
+  }
+}
 
 
 # #################################################################################################################

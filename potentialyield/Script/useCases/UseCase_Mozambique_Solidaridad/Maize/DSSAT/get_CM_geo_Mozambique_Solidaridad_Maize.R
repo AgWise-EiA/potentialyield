@@ -3,9 +3,10 @@
 #################################################################################################################
 ## source "get_rain_temp_summary.R" function and get weather data 
 #################################################################################################################
-#source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/readGeo_CM_V2.R")
+# source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/readGeo_CM_zone.R")
 
-source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/readGeo_CM_V3.R")
+# source("~/transform-modelling/AgWise_Siya/readGeo_CM_zone_SM.R") #local copy
+source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/readGeo_CM_zone.R") #Server copy
 
 #################################################################################################################
 ## Create soil and weather data in DSSAT format for trial data
@@ -17,19 +18,29 @@ source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/read
 ## Create soil and weather data in DSSAT format for AOI data
 #################################################################################################################
 country <- "Mozambique"
-countryShp <- geodata::gadm(country, level = 1, path='.')
-prov <- unique(countryShp$NAME_1)
-
-#prov <- c("Tete","Nampula", "Cabo Delgado", "Zambezia", "Manica") #"Manica"
-
-prov <- c("Tete", "Zambezia", "Nampula", "Cabo Delgado", "Manica")
-
-Planting_month_date <- "11-01" ## the earliest possible plating mm-dd
-
-Harvest_month_date <- "07-30" ## the earliest harvest date in mm-dd (https://www.apni.net/wp-content/uploads/2022/05/4R-Maize-Guide-0511.pdf)
+useCaseName <- "Solidaridad"
+Crop <- "Maize"
+variety <- "999991"
 
 
-for (i in 1:length(prov)){
-  geoData_AOI <- readGeo_CM(country="Mozambique",  useCaseName = "Solidaridad", Crop = "Maize", AOI = TRUE, season=1, Province = prov[i])
+inputDataZ <- readRDS("~/agwise-datacuration/dataops/datacuration/Data/useCase_Mozambique_Solidaridad/Maize/result/AOI_GPS.RDS")
+
+provinces <-  c('Tete','Zambezia')
+
+mz <- which(inputDataZ$NAME_1 %in% provinces)
+
+inputDataZ <-  inputDataZ[mz,]
+
+for (z in 1:length(provinces)){
+  district<-unique(inputDataZ$NAME_2[inputDataZ$NAME_1==provinces[z]])
+  for (i in 1:length(district)){
+     print(provinces[z])
+     print(district[i])
+  geoData_AOI <- readGeo_CM_zone(country=country,  useCaseName = useCaseName , Crop = Crop, AOI = TRUE, season=1, zone = provinces[z],level2=district[i],variety=variety)
   }
+}
+
+
+
+
 

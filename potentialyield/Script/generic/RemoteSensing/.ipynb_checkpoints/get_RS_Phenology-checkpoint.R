@@ -1,14 +1,13 @@
-# Get Phenology derived from Remote Sensing  
+# Get Phenology (Planting and harvesting dates) derived from MODIS NDVI time series for the Use Case  
 
 # Introduction: 
-# Crop phenology extraction through time-series satellite images (MODIS EVI 250m 8-day interval;Aqua & Terra data OR Sentinel-3 NDVI 10-day 300) ################
-
-#i. Shaping of the data 
-#ii. Extracting the peak/max values and date 
-#iii.Extracting the date of the min values on the left part of the curve  
-#iv. Extracting the date of the min values on the right part of the curve
-#v. Extracting the actual planting date
-#vi.  Saving the rasters for actual planting date and harvesting date
+# This script allows the crop phenology extraction through MODIS NDVI time series. This script has to be run after get_MODISts_PreProc.R. It covers :
+# (1) - Shaping of the data 
+# (2) - Extracting the peak/max values and date 
+# (3) - Extracting the date of the min values on the left part of the curve  
+# (4) - Extracting the date of the min values on the right part of the curve
+# (5) - Extracting the actual planting date
+# (6) - Saving the rasters for actual planting date and harvesting date
 
 #### Getting started #######
 
@@ -26,7 +25,7 @@ suppressWarnings(suppressPackageStartupMessages(invisible(lapply(packages_requir
 # 2. Extracting phenology from NDVI time series  -------------------------------------------
 
 
-Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_year, Planting_month, Harvesting_month, overwrite){
+Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_year, Planting_month, Harvesting_month, emergence, overwrite = FALSE){
   
   #' @description Function that will allow to obtain the actual planting date and the harvesting date based on VI time series analysis
   #' @param country country name
@@ -36,15 +35,16 @@ Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_yea
   #' @param Harvesting_year the harvesting year in integer
   #' @param Planting_month the planting month in full name (eg.February)
   #' @param Harvesting_month the harvesting month in full name (eg. September)
+  #' @param emergence the average number of days between the planting date and the emergence date
   #'
   #' @return raster files of planting date and harvesting date at the Use Case level, the results will be written out in /agwise-potentialyield/dataops/potentialyield/Data/useCase/RSdata/transform/EVI
   #'
-  #' @examples Phenology_rasterTS(country = "Rwanda", useCaseName = "RAB",Planting_year = 2021, Harvesting_year = 2021, Planting_month = "February",Harvesting_month = "July", overwrite = TRUE)
+  #' @examples Phenology_rasterTS(country = "Rwanda", useCaseName = "RAB",Planting_year = 2021, Harvesting_year = 2021, Planting_month = "February",Harvesting_month = "July", overwrite = TRUE, emergence=7)
 
   #' 
   #' 
   ## 2.1. Creating a directory to store the phenology data ####
-  pathOut <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", "RSdata/transform/EVI", sep="")
+  pathOut <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", "RSdata/results/NDVI", sep="")
   
   if (!dir.exists(pathOut)){
     dir.create(file.path(pathOut), recursive = TRUE)
@@ -53,11 +53,11 @@ Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_yea
   ## 2.2. Read  and prepare the relevant data ####
   
   ## Download the extent of the country of interest
-  countryShp <- geodata::gadm(country, level = 2, path='.')
+  #countryShp <- geodata::gadm(country, level = 2, path=pathOut)
   
   ## Read the preprocessed RS time series
-  pathIn <- paste("/home/jovyan/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_",useCaseName, "/", "MODISdata/transform/EVI", sep="")
-  fileIn_name <- paste0(country,'_', useCaseName, '_*_EVI_', Planting_year,'_', Harvesting_year, '_SG.tif')
+  pathIn <- paste("/home/jovyan/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_",useCaseName, "/", "MODISdata/transform/NDVI", sep="")
+  fileIn_name <- paste0(country,'_', useCaseName, '_MODIS_NDVI_', Planting_year,'_', Harvesting_year, '_SG.tif')
   listRaster_SG <- list.files(path=pathIn, pattern=glob2rx(fileIn_name), full.names = T)
   stacked_SG <- terra::rast(listRaster_SG) #stack
 
@@ -68,8 +68,20 @@ Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_yea
   start <- as.Date(as.character(start), format ="%d-%B-%Y")
   startj <- as.POSIXlt(start)$yday # conversion in julian day
   
+  # Test the number of days in a month
+  if (Harvesting_month %in% c('January','March','May','July','August','October','December')){
+    nday = "31-"
+  }
+  
+  if (Harvesting_month %in% c('April','June','September','November')){
+    nday = "30-"
+  }
+  if (Harvesting_month %in% c('February')){
+    nday = "28-"
+  }
+  
   # End of the season
-  end <- paste0("31-",Harvesting_month,"-", Planting_year)
+  end <- paste0(nday,Harvesting_month,"-", Planting_year)
   end <- as.Date(as.character(end), format ="%d-%B-%Y")
   endj <- as.POSIXlt(end)$yday # conversion in julian day
   
@@ -96,6 +108,7 @@ Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_yea
   
   # Subset the data between planting and harvesting date
   stacked_SG_s <- stacked_SG[[grep(paste(seq, collapse = "|"), names(stacked_SG))]]
+  rm(stacked_SG)
   
   ## 2.4. Extraction of date with Peak/Max VI values ####
   
@@ -111,6 +124,10 @@ Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_yea
   peakmx.max <- terra::app(stacked_SG_s, fun=max)
   # plot(peakmx.max, main ="Pixels having maximum values")
   
+  # CHECK HOW WROTE THIS #
+  #max.pheno <- terra::which.max(stacked_SG_s)
+  #max.pheno <- classify(max.pheno, cbind(1:nlyr(stacked_SG_s, max_pheno_julian)))  
+
   ## Create an empty raster to include the Julian days info against its respective calendar date when the pixels have maximum values in the cropping season 
   max.pheno <- peakmx.max
   terra::values(max.pheno) <- NA
@@ -124,7 +141,7 @@ Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_yea
 
   ## Median peak values over the area
   median.max <- median(terra::values(max.pheno), na.rm = TRUE)
-  
+                        
   ## 2.5. Extraction of date with Min VI values left ####
   # We are looking at the TS comprise between the start of the season and the mean peak date values over the area
   # Subset the data between planting and median peak of the season date
@@ -275,25 +292,110 @@ Phenology_rasterTS<-function(country, useCaseName, Planting_year, Harvesting_yea
   ## 2.8. Actual planting dates ####
   ## Singh et al (2019): https://doi.org/10.1038/s41893-019-0304-4 pixel achieved 10% of maximum VI on the ascending limb of the growth curve; actual ##transplanting is likely to be 2–3 weeks (~21days) before the green up estimates.
   
-  ## Remove 21 Days from the emergence date
-  pd.pct10max.left21D <- pd.pct10max.left-21 # 21 days need to be done differently
+  ## Remove the average number of day from planting to the emergence
+  pd.pct10max.left21D <- pd.pct10max.left-emergence 
 
   ## Saving the raster of actual planting date
-  filename <- paste0(country,'_', useCaseName, '_MODIS_EVI_', Planting_year,'_',Planting_month,'_', Harvesting_year,'_', Harvesting_month, '_ActualPlantingDate.tif')
+  filename <- paste0(country,'_', useCaseName, '_MODIS_NDVI_', Planting_year,'_',Planting_month,'_', Harvesting_year,'_', Harvesting_month, '_ActualPlantingDate.tif')
   terra::writeRaster(pd.pct10max.left21D, paste(pathOut, filename, sep="/"), filetype="GTiff", overwrite=overwrite)
   
   ## 2.9. Actual Harvesting dates ####
  
   ## Saving the raster of actual planting date
-  filename <- paste0(country,'_', useCaseName, '_MODIS_EVI_', Planting_year,'_',Planting_month,'_', Harvesting_year,'_', Harvesting_month, '_ActualHarvestingDate.tif')
+  filename <- paste0(country,'_', useCaseName, '_MODIS_NDVI_', Planting_year,'_',Planting_month,'_', Harvesting_year,'_', Harvesting_month, '_ActualHarvestingDate.tif')
   terra::writeRaster(pd.pct10max.right, paste(pathOut, filename, sep="/"), filetype="GTiff", overwrite=overwrite)
   
+# ## 2.9. Planting date Validation ####
+# ## Read the ground data ## 
+# pathInG <- paste("/home/jovyan/agwise-datacuration/dataops/datacuration/Data/useCase_", country, "_",useCaseName, sep="")
+# listGroundData <- list.files(path=pathInG, pattern = "all_crop.rds", full.names = T)
+# groundData <- readRDS(listGroundData)
+# groundData
+# num_rows = nrow(groundData)
+# # creating ID column vector 
+# ID <- c(1:num_rows)
+# # binding id column to the data frame
+# groundData <- cbind(ID , groundData)
+#     
+# #Subsetting the planting year
+# groundData$planting_date = as.Date(groundData$planting_date,format ="%d-%m-%Y")
+# groundData.p <- subset(groundData, format(groundData$planting_date,"%Y") == Planting_year)
+# pd_julian <- as.POSIXlt(groundData.p$planting_date )$yday # convert to julian days
+# groundData.p['PD_julian_days_ground']<-pd_julian    # add the column to the existing dataframe
+# 
+# # Check for intersection between raster and ground points
+# my.sf.point <- st_as_sf(x = groundData.p, 
+#                         coords = c("lon", "lat"),
+#                         crs = "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+# 
+# groundData.p.extract <- terra::extract(pd.pct10max.left21D, my.sf.point)
+# groundData.p['PD_julian_days_satellite']<-groundData.p.extract$Crop_PD2021_3
+# groundData.p <- na.omit(groundData.p)
+# 
+# # Calculating the accuracy metrics
+# accmat.pd <- table("pre" = groundData.p$PD_julian_days_satellite, "obs" = groundData.p$PD_julian_days_ground)
+# accmat.pd
+# #The following parameters can now be calculated: user’s accuracies UA, producer’s accuracies PA, and the overall accuracy OA
+# UA <- diag(accmat.pd) / rowSums(accmat.pd) * 100
+# UA
+# PA <- diag(accmat.pd) / colSums(accmat.pd) * 100
+# PA
+# OA <- sum(diag(accmat.pd)) / sum(accmat.pd) * 100
+# OA
+# 
+# kappa <- function(m) {
+#   N <- sum(m)
+#   No <- sum(diag(m))
+#   Ne <- 1 / N * sum(colSums(m) * rowSums(m))
+#   return( (No - Ne) / (N - Ne) )
+# }
+# 
+# kappacoefficient <- kappa(accmat.pd)
+# kappacoefficient    
+#     
+# ## 2.9. Harvest date Validation ####
+# #Subsetting the Harvest year
+# groundData$harvest_date  = as.Date(groundData$harvest_date ,format ="%d-%m-%Y")
+# groundData.h <- subset(groundData, format(groundData$harvest_date ,"%Y") == Harvesting_year)
+# Hd_julian <- as.POSIXlt(groundData.h$harvest_date  )$yday # convert to julian days
+# groundData.h['HD_julian_days_ground']<-Hd_julian    # add the column to the existing dataframe
+# 
+# # Check for intersection between raster and ground points
+# my.sf.point <- st_as_sf(x = groundData.p, 
+#                         coords = c("lon", "lat"),
+#                         crs = "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+# 
+# groundData.h.extract <- terra::extract(pd.pct10max.right, my.sf.point)
+# groundData.h['HD_julian_days_satellite']<-groundData.h.extract$Crop_PD2021_3
+# groundData.h <- na.omit(groundData.h)
+# 
+# # Calculating the accuracy metrics
+# accmat.hd <- table("pre" = groundData.h$HD_julian_days_satellite, "obs" = groundData.h$HD_julian_days_ground)
+# accmat.hd
+# #The following parameters can now be calculated: user’s accuracies UA, producer’s accuracies PA, and the overall accuracy OA
+# UA <- diag(accmat.hd) / rowSums(accmat.hd) * 100
+# UA
+# PA <- diag(accmat.hd) / colSums(accmat.hd) * 100
+# PA
+# OA <- sum(diag(accmat.pd)) / sum(accmat.pd) * 100
+# OA
+# 
+# kappa <- function(m) {
+#   N <- sum(m)
+#   No <- sum(diag(m))
+#   Ne <- 1 / N * sum(colSums(m) * rowSums(m))
+#   return( (No - Ne) / (N - Ne) )
+# }
+# 
+# kappacoefficient <- kappa(accmat.pd)
+# kappacoefficient    
+        
 }
 
-# country = "Rwanda"
-# useCaseName = "RAB"
-# Planting_year = 2021
-# Harvesting_year = 2021
-# Planting_month = "February"
-# Harvesting_month = "July"
-# overwrite = TRUE
+ # country = "Kenya"
+ # useCaseName = "KALRO"
+ # Planting_year = 2017
+ # Harvesting_year = 2017
+ # Planting_month = "February"
+ # Harvesting_month = "November"
+ # overwrite = TRUE
