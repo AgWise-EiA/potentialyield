@@ -43,20 +43,19 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #'        for the specific location the experimental file is created
 #' @param fertilizer if TRUE the parameter modifies the fertilizer date to be at planting 
 #' @param geneticfiles Name of CUL, ECO and SPE file to be copied (e.g., MZCER048)
-#' @param use_level2 if TRUE the path of AOI would consider in the path each administrative level2
 #' @return
 #'
 #' @examples create_filex(i=1,path.to.temdata = "/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_Kenya_KALRO/Maize/Landing/DSSAT",
 #'                        filex_temp="KEAG8104.MZX",
 #'                        path.to.extdata = "/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_Keny_KALRO/Maize/transform/DSSAT/AOI/999991",
-#'                        country="Kenya", AOI=TRUE, crop_code ="MZ",plantingWindow=1,number_years,varietyid = "999991", zone ="Tete", level2="Macanga",
-#'                        fertilizer=FALSE, geneticfiles = "MZCER048",use_level2=FALSE)
+#'                        country="Kenya", AOI=TRUE, crop_code ="MZ",plantingWindow=1,number_years,varietyid = "999991", zone ="Tete", level2=NA,
+#'                        fertilizer=FALSE, geneticfiles = "MZCER048")
 
 
 
 
 create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI=TRUE, 
-                        crop_code,plantingWindow=1,number_years,varietyid, zone, level2,fertilizer =FALSE,geneticfiles,use_level2=FALSE){
+                        crop_code,plantingWindow=1,number_years,varietyid, zone, level2=NA,fertilizer =FALSE,geneticfiles){
   setwd(path.to.temdata)
   #Read in original FileX
   file_x <- DSSAT::read_filex(filex_temp)
@@ -64,10 +63,10 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
 
   if(AOI==TRUE){
     #define working path (each point to be run)
-    if(use_level2==TRUE){
-      working_path <- paste(path.to.extdata,paste0(zone,"/",level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-    }else{
+    if(is.na(level2)){
       working_path <- paste(path.to.extdata,paste0(zone,"/EXTE", formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+    }else{
+      working_path <- paste(path.to.extdata,paste0(zone,"/",level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
     }
     #copy genetic files
     gen_parameters <- list.files(pattern = geneticfile, full.names = TRUE) 
@@ -194,7 +193,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
 #'                         ID="TLID",season = 1, plantingWindow = 1,varietyid = "999991", zone ="Tete", level2="Macanga",fertilizer=F)
 
 dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Planting_month_date=NULL,Harvest_month_date=NULL, 
-                          ID="TLID",season =1, plantingWindow=1,varietyid, zone, level2, fertilizer=F,geneticfiles){  
+                          ID="TLID",season =1, plantingWindow=1,varietyid, zone, level2=NA, fertilizer=F,geneticfiles){  
   if(AOI == TRUE){
     if(is.null(Planting_month_date) | is.null(Harvest_month_date)){
       print("with AOI=TRUE, Planting_month_date, Harvest_month_date can not be null, please refer to the documentation and provide mm-dd for both parameters")
