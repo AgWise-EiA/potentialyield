@@ -83,7 +83,9 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     file_x$CULTIVARS$CR <- crop_code
     file_x$CULTIVARS$INGENO <- varietyid
     ex_profile <- DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i)),flag = "0")))
-    file_x$`INITIAL CONDITIONS`$SH2O<- as.numeric(ex_profile$SLLL) + ((as.numeric(ex_profile$SDUL)-as.numeric(ex_profile$SLLL))*index_soilwat) #Assume a proportion between wilting point and field capacity as initial condition
+    #Assume a proportion between wilting point and field capacity as initial condition
+    file_x$`INITIAL CONDITIONS`$SH2O<- mapply(function(sdul, slll, index) {
+      slll + ((sdul-slll) * index)}, ex_profile$SDUL, ex_profile$SLLL, MoreArgs = list(index = index_soilwat), SIMPLIFY = FALSE)
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
     file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])
     file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate[i])
@@ -308,9 +310,8 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   crop_code <- cropcode_supported[cropid]
   
 
-  setwd(path.to.extdata)
 
   
   results <- map(seq_along(grid[,1]), create_filex, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
                  coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
-                 zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat) %||% print("Progress:")}
+                 zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat) %||% print("Progress:")}
