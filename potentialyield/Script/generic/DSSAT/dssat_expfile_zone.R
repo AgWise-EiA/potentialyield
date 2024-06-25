@@ -236,7 +236,7 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
     countryCoord$harvestDate <- Harvest_month_date
     if(plantingWindow > 1 & plantingWindow <= 5){
       Harvest_month_date <- Harvest_month_date %m+% months(1)
-    }else if(plantingWindow > 5 & plantingWindow <=8){
+    }else if(plantingWindow > 5 & plantingWindow <=30){
       Harvest_month_date <- Harvest_month_date %m+% months(2)
     }
     
@@ -303,8 +303,8 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   #Define working directory with template data
   path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/Landing/DSSAT", sep="")
   #We need to add more codes
-  crops <- c("Maize", "Potato", "Rice", "Soybean", "Wheat","Beans")
-  cropcode_supported <- c("MZ","PT", "RI", "SB", "WH","BN")
+  crops <- c("Maize", "Potato", "Rice", "Soybean", "Wheat","Beans","Cassava")
+  cropcode_supported <- c("MZ","PT", "RI", "SB", "WH","BN","CS")
   
   cropid <- which(crops == Crop)
   crop_code <- cropcode_supported[cropid]
