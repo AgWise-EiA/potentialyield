@@ -83,7 +83,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     file_x$CULTIVARS$CR <- crop_code
     file_x$CULTIVARS$INGENO <- varietyid
     ex_profile <- DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i)),flag = "0")))
-    file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SLLL + ((ex_profile$SDUL-ex_profile$SLLL)*index_soilwat) #Assume a proportion between wilting point and field capacity as initial condition
+    file_x$`INITIAL CONDITIONS`$SH2O<- as.numeric(ex_profile$SLLL) + ((as.numeric(ex_profile$SDUL)-as.numeric(ex_profile$SLLL))*index_soilwat) #Assume a proportion between wilting point and field capacity as initial condition
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
     file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])
     file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate[i])
