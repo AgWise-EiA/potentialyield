@@ -32,7 +32,7 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #'
 #' @examples rundssat(1)
 
-rundssat <-function(i,path.to.extdata,TRT,AOI=T,crop_code,zone,level2){
+rundssat <-function(i,path.to.extdata,TRT,AOI=TRUE,crop_code,zone,level2=NA){
     setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
 
   # Generate a DSSAT batch file using a tibble
@@ -63,12 +63,17 @@ rundssat <-function(i,path.to.extdata,TRT,AOI=T,crop_code,zone,level2){
 #' @examples dssat.exec(country = "Rwanda",  useCaseName = "RAB", Crop = "Maize", AOI = FALSE, Planting_month_date = NULL,jobs=10,TRT=1:36)
 
 
- dssat.exec <- function(country, useCaseName, Crop, AOI = FALSE,TRT,varietyid, zone, level2){  
+ dssat.exec <- function(country, useCaseName, Crop, AOI = TRUE,TRT,varietyid, zone, level2=NA){  
      
   #Set working directory to save the results
   if (AOI==TRUE){
-    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/", varietyid,"/",zone,"/",level2,"/", sep="")
+    if(is.na(level2)){
+      path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/", varietyid,"/",zone,"/", sep="")
     }else{
+      path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/", varietyid,"/",zone,"/",level2,"/", sep="")
+    }
+    
+  }else{
     path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/fieldData/",varietyid,"/",zone,"/", sep="")
   }
   
@@ -79,8 +84,8 @@ rundssat <-function(i,path.to.extdata,TRT,AOI=T,crop_code,zone,level2){
   matching_folders <- folders[grepl("EXTE", folders, ignore.case = TRUE)]
   
   
-  crops <- c("Maize", "Potato", "Rice", "Soybean", "Wheat")
-  cropcode_supported <- c("MZ","PT", "RI", "SB", "WH")
+  crops <- c("Maize", "Potato", "Rice", "Soybean", "Wheat","Cassava","Beans")
+  cropcode_supported <- c("MZ","PT", "RI", "SB", "WH","CS","BN")
   
   cropid <- which(crops == Crop)
   crop_code <- cropcode_supported[cropid]
