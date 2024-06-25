@@ -37,26 +37,29 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #' @param plantingWindow number of weeks that define the planting window considering the Planting_month_date as the earliest planting week. 
 #'        It is given when several planting dates are to be tested to determine optimal planting date (applies when AOI= TRUE)  
 #' @param number_years Number of years the simulations are run when AOI=TRUE (it does not apply to the trial location data)
-#' @param varietyid id of the variety based on the cultivar file of DSSAT (column @VAR# in the cultivar file and parameter INGENO in the experimental file *.**X)
+#' @param varietyid id of the variety based on the cultivar file of DSSAT (column @VAR# in the cultivar file and parameter 
+#'        INGENO in the experimental file *.**X)
 #' @param zone Name of the administrative level 1 for the specific location the experimental file is created.
 #' @param level2 Name of the administrative level 2 (has to be part of the administrative level 1 or "zone" of the country) 
 #'        for the specific location the experimental file is created
 #' @param fertilizer if TRUE the parameter modifies the fertilizer date to be at planting 
 #' @param geneticfiles Name of CUL, ECO and SPE file to be copied (e.g., MZCER048)
-#' @param use_level2 if TRUE the path of AOI would consider in the path each administrative level2
+#' @param index_soilwat Index to define the initial soil water content. If 1 the initial soil water is field capacity 
+#'        and if 0, the initial soil water is wilting point
 #' @return
 #'
 #' @examples create_filex(i=1,path.to.temdata = "/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_Kenya_KALRO/Maize/Landing/DSSAT",
 #'                        filex_temp="KEAG8104.MZX",
 #'                        path.to.extdata = "/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_Keny_KALRO/Maize/transform/DSSAT/AOI/999991",
-#'                        country="Kenya", AOI=TRUE, crop_code ="MZ",plantingWindow=1,number_years,varietyid = "999991", zone ="Tete", level2="Macanga",
-#'                        fertilizer=FALSE, geneticfiles = "MZCER048",use_level2=FALSE)
+#'                        country="Kenya", AOI=TRUE, crop_code ="MZ",plantingWindow=1,number_years,varietyid = "999991", zone ="Tete", level2=NA,
+#'                        fertilizer=FALSE, geneticfiles = "MZCER048",index_soilwat=1)
 
 
 
 
 create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI=TRUE, 
-                        crop_code,plantingWindow=1,number_years,varietyid, zone, level2,fertilizer =FALSE,geneticfiles,use_level2=FALSE){
+                        crop_code,plantingWindow=1,number_years,varietyid, zone, level2=NA,
+                        fertilizer =FALSE,geneticfiles,index_soilwat=1){
   setwd(path.to.temdata)
   #Read in original FileX
   file_x <- DSSAT::read_filex(filex_temp)
@@ -64,10 +67,10 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
 
   if(AOI==TRUE){
     #define working path (each point to be run)
-    if(use_level2==TRUE){
-      working_path <- paste(path.to.extdata,paste0(zone,"/",level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-    }else{
+    if(is.na(level2)){
       working_path <- paste(path.to.extdata,paste0(zone,"/EXTE", formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+    }else{
+      working_path <- paste(path.to.extdata,paste0(zone,"/",level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
     }
     #copy genetic files
     gen_parameters <- list.files(pattern = geneticfile, full.names = TRUE) 
@@ -80,7 +83,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     file_x$CULTIVARS$CR <- crop_code
     file_x$CULTIVARS$INGENO <- varietyid
     ex_profile <- DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i)),flag = "0")))
-    file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SDUL #Assume field capacity as initial condition
+    file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SLLL + ((ex_profile$SDUL-ex_profile$SLLL)*index_soilwat) #Assume a proportion between wilting point and field capacity as initial condition
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
     file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])
     file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate[i])
@@ -194,7 +197,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
 #'                         ID="TLID",season = 1, plantingWindow = 1,varietyid = "999991", zone ="Tete", level2="Macanga",fertilizer=F)
 
 dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Planting_month_date=NULL,Harvest_month_date=NULL, 
-                          ID="TLID",season =1, plantingWindow=1,varietyid, zone, level2, fertilizer=F,geneticfiles){  
+                          ID="TLID",season =1, plantingWindow=1,varietyid, zone, level2=NA, fertilizer=F,geneticfiles,index_soilwat=1){  
   if(AOI == TRUE){
     if(is.null(Planting_month_date) | is.null(Harvest_month_date)){
       print("with AOI=TRUE, Planting_month_date, Harvest_month_date can not be null, please refer to the documentation and provide mm-dd for both parameters")
@@ -309,4 +312,4 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   
   results <- map(seq_along(grid[,1]), create_filex, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
                  coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
-                 zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles) %||% print("Progress:")}
+                 zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat) %||% print("Progress:")}
