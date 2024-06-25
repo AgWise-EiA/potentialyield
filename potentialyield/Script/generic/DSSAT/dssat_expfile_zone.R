@@ -73,7 +73,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
       working_path <- paste(path.to.extdata,paste0(zone,"/",level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
     }
     #copy genetic files
-    gen_parameters <- list.files(pattern = geneticfile, full.names = TRUE) 
+    gen_parameters <- list.files(pattern = geneticfiles, full.names = TRUE) 
     file.copy(gen_parameters, working_path,overwrite = TRUE)
     #Set the experimental directory
     setwd(working_path)
@@ -142,7 +142,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     #define working path (each point to be run)
     working_path <- paste(path.to.extdata,paste0(zone,"/",'EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
     #copy genetic files
-    gen_parameters <- list.files(pattern = geneticfile, full.names = TRUE) 
+    gen_parameters <- list.files(pattern = geneticfiles, full.names = TRUE) 
     file.copy(gen_parameters, working_path,overwrite = TRUE)
     #Set the experimental directory
     setwd(working_path)
@@ -194,7 +194,8 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
 #'
 #' @examples dssat.expfile(country="Mozambique", useCaseName = "Solidaridad", Crop = "Maize", AOI = FALSE,
 #'                         filex_temp= "ELZA0201.MZX", Planting_month_date=NULL,Harvest_month_date=NULL, 
-#'                         ID="TLID",season = 1, plantingWindow = 1,varietyid = "999991", zone ="Tete", level2="Macanga",fertilizer=F)
+#'                         ID="TLID",season = 1, plantingWindow = 1,varietyid = "999991", zone ="Tete", level2=NA,fertilizer=F,
+#'                         geneticfiles = "MZCER048",index_soilwat=1)
 
 dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Planting_month_date=NULL,Harvest_month_date=NULL, 
                           ID="TLID",season =1, plantingWindow=1,varietyid, zone, level2=NA, fertilizer=F,geneticfiles,index_soilwat=1){  
