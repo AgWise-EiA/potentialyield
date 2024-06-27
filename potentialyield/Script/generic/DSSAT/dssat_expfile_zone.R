@@ -60,6 +60,7 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI=TRUE, 
                         crop_code,plantingWindow=1,number_years,varietyid, zone, level2=NA,
                         fertilizer =FALSE,geneticfiles,index_soilwat=1){
+  print(paste("Experiment number", i))
   setwd(path.to.temdata)
   #Read in original FileX
   file_x <- DSSAT::read_filex(filex_temp)
@@ -201,6 +202,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
 
 dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Planting_month_date=NULL,Harvest_month_date=NULL, 
                           ID="TLID",season =1, plantingWindow=1,varietyid, zone, level2=NA, fertilizer=F,geneticfiles,index_soilwat=1){  
+  print(paste("Variety:", varietyid,"Zone:", zone))
   if(AOI == TRUE){
     if(is.null(Planting_month_date) | is.null(Harvest_month_date)){
       print("with AOI=TRUE, Planting_month_date, Harvest_month_date can not be null, please refer to the documentation and provide mm-dd for both parameters")
