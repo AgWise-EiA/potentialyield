@@ -64,8 +64,8 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
   setwd(path.to.temdata)
   #Read in original FileX
   file_x <- DSSAT::read_filex(filex_temp)
-
-
+  
+  
   if(AOI==TRUE){
     #define working path (each point to be run)
     if(is.na(level2)){
@@ -124,7 +124,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
       file_x$`SIMULATION CONTROLS`<- file_x$`SIMULATION CONTROLS` %>% add_row(!!!file_x$`SIMULATION CONTROLS`[file_x$`SIMULATION CONTROLS`$N==1,])
       file_x$`SIMULATION CONTROLS`[1+j,]$N <- 1+j
       file_x$`SIMULATION CONTROLS`[1+j,]$SDATE <- as.POSIXct(coords$startingDate[i]) %m+% weeks(j)
-        
+      
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------` <- file_x$`TREATMENTS                        -------------FACTOR LEVELS------------` %>% 
         add_row(!!!file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$N==1,])
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[1+j,]$N <- 1+j
@@ -137,8 +137,8 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[1+j,]$MP <- 1+j
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[1+j,]$MH <- 1+j
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[1+j,]$SM <- 1+j
-      }
-
+    }
+    
     #Overwrite original FileX with new values
     DSSAT::write_filex(file_x,paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.',crop_code,'X'))
   }else{
@@ -257,14 +257,14 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
     names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate","startingDate")
     ground <- countryCoord
   }
-#To verify if the weather inputs are going to be always in datasourcing result instead of potentialyield raw
+  #To verify if the weather inputs are going to be always in datasourcing result instead of potentialyield raw
   #pathIn <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/raw/geo_4cropModel/", sep="")
   pathIn <- paste("/home/jovyan/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/geo_4cropModel/", sep="")
   
   if(AOI == TRUE){
     Rainfall <- readRDS(paste(pathIn,zone, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
     Soil <- readRDS(paste(pathIn,zone,"/SoilDEM_PointData_AOI_profile.RDS", sep=""))
-
+    
   }else{
     Rainfall <- readRDS(paste(pathIn, "Rainfall_PointData_trial.RDS", sep=""))
     Soil <- readRDS(paste(pathIn, "SoilDEM_PointData_trial_profile.RDS", sep=""))
@@ -275,27 +275,24 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   Soil <- na.omit(Soil)
   
   if(AOI == TRUE){
-    if ("NAME_1" %in% names(Rainfall)){
-      metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2")])
-    } else{
-      metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "Zone", "NAME_2")])
-      
-    }
-    
+    #Modify names created for some of the use cases
+    if ("Zone" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="Zone"] <- "NAME_1"}
+    if ("lat" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="lat"] <- "latitude"}
+    if ("lon" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="lon"] <- "longitude"}
+    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "NAME_1", "NAME_2")])
   }else{
-    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2",
+    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "NAME_1", "NAME_2",
                                                  "yearPi","yearHi","pl_j","hv_j")])
-    
   }
   metaData_Soil <- Soil[,c("longitude", "latitude","NAME_1","NAME_2")]
   
   
   metaData <- merge(metaDataWeather,metaData_Soil)
-    if(AOI==TRUE){
-      number_years <- max(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))- min(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))
-    }else{
-      number_years <- 1
-    }
+  if(AOI==TRUE){
+    number_years <- max(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))- min(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))
+  }else{
+    number_years <- 1
+  }
   metaData <- unique(metaData[,c("longitude", "latitude","NAME_1","NAME_2")])
   coords <- merge(metaData,ground)
   coords <- coords[coords$NAME_1==zone,]
@@ -316,9 +313,10 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   cropid <- which(crops == Crop)
   crop_code <- cropcode_supported[cropid]
   
-
-
+  
+  
   
   results <- map(seq_along(grid[,1]), create_filex, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
                  coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
                  zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat) %||% print("Progress:")}
+
