@@ -275,7 +275,12 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   Soil <- na.omit(Soil)
   
   if(AOI == TRUE){
-    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2")])
+    if ("NAME_1" %in% names(Rainfall)){
+      metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2")])
+    } else{
+      metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "Zone", "NAME_2")])
+      
+    }
     
   }else{
     metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2",
