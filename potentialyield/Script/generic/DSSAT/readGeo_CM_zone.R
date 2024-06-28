@@ -120,6 +120,20 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
   Sraddata <- Sraddata[Sraddata$longitude==coords$longitude[i] & Sraddata$latitude==coords$latitude[i],]
   Rainfalldata <- Rainfalldata[Rainfalldata$longitude==coords$longitude[i] & Rainfalldata$latitude==coords$latitude[i],]
  
+  #Modify names created for some of the use cases with different column names
+  if ("Zone" %in% names(Rainfalldata)){ names(Rainfalldata)[names(Rainfalldata)=="Zone"] <- "NAME_1"}
+  if ("lat" %in% names(Rainfalldata)){ names(Rainfalldata)[names(Rainfalldata)=="lat"] <- "latitude"}
+  if ("lon" %in% names(Rainfalldata)){ names(Rainfalldata)[names(Rainfalldata)=="lon"] <- "longitude"}
+  if ("Zone" %in% names(Tmaxdata)){ names(Tmaxdata)[names(Tmaxdata)=="Zone"] <- "NAME_1"}
+  if ("lat" %in% names(Tmaxdata)){ names(Tmaxdata)[names(Tmaxdata)=="lat"] <- "latitude"}
+  if ("lon" %in% names(Tmaxdata)){ names(Tmaxdata)[names(Tmaxdata)=="lon"] <- "longitude"}
+  if ("Zone" %in% names(Tmindata)){ names(Tmindata)[names(Tmindata)=="Zone"] <- "NAME_1"}
+  if ("lat" %in% names(Tmindata)){ names(Tmindata)[names(Tmindata)=="lat"] <- "latitude"}
+  if ("lon" %in% names(Tmindata)){ names(Tmindata)[names(Tmindata)=="lon"] <- "longitude"}
+  if ("Zone" %in% names(Sraddata)){ names(Sraddata)[names(Sraddata)=="Zone"] <- "NAME_1"}
+  if ("lat" %in% names(Sraddata)){ names(Sraddata)[names(Sraddata)=="lat"] <- "latitude"}
+  if ("lon" %in% names(Sraddata)){ names(Sraddata)[names(Sraddata)=="lon"] <- "longitude"}
+  
   if(AOI == TRUE){
     Rainfalldata <- pivot_longer(Rainfalldata,
                              cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
@@ -136,14 +150,14 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
     Sraddata <-unique(dplyr::select(Sraddata,-c(Variable,startingDate, endDate)))
 
     Tmaxdata <- pivot_longer(Tmaxdata,
-                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate","country"),
+                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "TMAX")
     Tmaxdata <-unique(dplyr::select(Tmaxdata,-c(Variable,startingDate, endDate)))
 
     Tmindata <- pivot_longer(Tmindata,
-                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate", "country"),
+                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "TMIN")
@@ -189,6 +203,16 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
   tst <- dplyr::select(tst,c(DATE,TMAX,TMIN,SRAD,RAIN))
   tst  <- mutate(tst , across(c(TMAX,TMIN,SRAD,RAIN), as.numeric))
 
+  # Avoid TMIN > TMAX
+  tst <- tst %>%
+    rowwise() %>%
+    mutate(
+      temp = ifelse(TMIN > TMAX, TMIN, TMIN),
+      TMIN = ifelse(TMIN > TMAX, TMAX, TMIN),
+      TMAX = ifelse(TMIN > TMAX, temp, TMAX)
+    ) %>%
+    select(-temp) %>%
+    ungroup()
   # Calculate long-term average temperature (TAV)
   tav <- tst %>%
     dplyr::summarise(TAV=mean((TMAX+TMIN)/2,na.rm=T))
