@@ -207,11 +207,13 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
   tst <- tst %>%
     rowwise() %>%
     mutate(
-      temp = ifelse(TMIN > TMAX, TMIN, TMIN),
-      TMIN = ifelse(TMIN > TMAX, TMAX, TMIN),
-      TMAX = ifelse(TMIN > TMAX, temp, TMAX)
+      temp = TMAX,
+      temp2 = TMIN,
+      TMAX = ifelse(TMIN > TMAX, temp2, TMAX),
+      TMIN = ifelse(TMIN > temp, temp, temp2)
+
     ) %>%
-    select(-temp) %>%
+    select(-c(temp,temp2)) %>%
     ungroup()
   # Calculate long-term average temperature (TAV)
   tav <- tst %>%
