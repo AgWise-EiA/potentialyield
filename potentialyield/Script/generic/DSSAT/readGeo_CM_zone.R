@@ -1,8 +1,15 @@
+# Create weather and soil files in DSSAT format
+
+# Introduction: 
+# This script allows the creation of weather and soil files up to administrative level 2
+# Authors : P.Moreno, A. Sila, S. Mkuhlani, E.Bendito Garcia 
+# Credentials : EiA, 2024
+# Last modified June 28, 2024 
 
 #################################################################################################################
-## sourcing required packages ##
+## sourcing required packages                                                                                  ##
 #################################################################################################################
-packages_required <- c("chirps", "tidyverse", "dplyr", "lubridate", "stringr","sf","purrr","DSSAT")
+packages_required <- c("chirps", "tidyverse","sf","DSSAT")
 
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
@@ -91,110 +98,91 @@ slu1 <- function(clay1,sand1) {
 #'
 #' @examples process_grid_element(1)
 
-process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxdata,Tmindata,Sraddata,Rainfalldata,coords,Soil,AOI,varietyid,zone,level2) {
+process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxdata,Tmindata,Sraddata,Rainfalldata,coords,Soil,AOI,varietyid,zone,level2=NA) {
 
-if(AOI==TRUE){
-     pathAOI <- paste(path.to.extdata,paste0(varietyid,'/',zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-     if (!dir.exists(file.path(pathAOI))){
-       dir.create(file.path(pathAOI), recursive = TRUE)
-     }
-     setwd(pathAOI)
+  if(!is.na(level2) & !is.na(zone)){
+    pathOUT <- paste(path.to.extdata,paste0(zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }else if(is.na(level2) & !is.na(zone)){
+    pathOUT <- paste(path.to.extdata,paste0(zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }else if(!is.na(level2) & is.na(zone)){
+    print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2). Process stopped")
+    return(NULL)
+  }else{
+    pathOUT <- paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }
+  if (!dir.exists(file.path(pathOUT))){
+    dir.create(file.path(pathOUT), recursive = TRUE)
+  }
+  setwd(pathOUT)
 
-   }else{
-     if (!dir.exists(file.path(paste(path.to.extdata,paste0(varietyid,'/',zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")))){
-       dir.create(file.path(paste(path.to.extdata,paste0(varietyid,'/',zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")), recursive = TRUE)
-       }
-     setwd(paste(path.to.extdata,paste0(varietyid,'/',zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
-     
-     
-     path_fieldData <- paste(path.to.extdata,"fieldData/",paste0(varietyid,'/',zone,'/','/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-     # path_fieldData <- paste(path.to.extdata,"fieldData/",paste0(varietyid,'/',zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-     
-          if (!dir.exists(file.path(path_fieldData))){
-       dir.create(file.path(path_fieldData), recursive = TRUE)
-     }
-     # setwd(pathAOI)
-     setwd(path_fieldData)
-     
-   }
   Tmaxdata <- Tmaxdata[Tmaxdata$longitude==coords$longitude[i] & Tmaxdata$latitude==coords$latitude[i],]
   Tmindata <- Tmindata[Tmindata$longitude==coords$longitude[i] & Tmindata$latitude==coords$latitude[i],]
   Sraddata <- Sraddata[Sraddata$longitude==coords$longitude[i] & Sraddata$latitude==coords$latitude[i],]
   Rainfalldata <- Rainfalldata[Rainfalldata$longitude==coords$longitude[i] & Rainfalldata$latitude==coords$latitude[i],]
-  #RelativeHum <- RelativeHum[RelativeHum$longitude==coords$longitude[i] & RelativeHum$latitude==coords$latitude[i],]
-
-#print("i am here")
+ 
   if(AOI == TRUE){
     Rainfalldata <- pivot_longer(Rainfalldata,
-                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate","ID"),
+                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
                              names_to = c("Variable", "Date"),
                              names_sep = "_",
                              values_to = "RAIN")
     Rainfalldata <-unique(dplyr::select(Rainfalldata,-c(Variable,startingDate, endDate)))
 
     Sraddata <- pivot_longer(Sraddata,
-                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate","ID"),
+                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "SRAD")
     Sraddata <-unique(dplyr::select(Sraddata,-c(Variable,startingDate, endDate)))
 
     Tmaxdata <- pivot_longer(Tmaxdata,
-                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate","ID"),
+                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate","country"),
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "TMAX")
     Tmaxdata <-unique(dplyr::select(Tmaxdata,-c(Variable,startingDate, endDate)))
 
     Tmindata <- pivot_longer(Tmindata,
-                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate","ID"),
+                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate", "country"),
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "TMIN")
     Tmindata <-unique(dplyr::select(Tmindata,-c(Variable,startingDate, endDate)))
 
-    # RelativeHum <- pivot_longer(RelativeHum,
-    #                             cols=-1:-7,
-    #                             names_to = c("Variable", "Date"),
-    #                             names_sep = "_",
-    #                             values_to = "RHUM")
-    # RelativeHum <-unique(select(RelativeHum,-c(Variable,startingDate, endDate)))
   }else{
+    #We need to confirm the identifier columns in fieldData
     Rainfalldata <- pivot_longer(Rainfalldata,
-                             cols=-1:-11,
+                             cols=-c("longitude","latitude","startingDate","endDate","yearPi","yearHi","pl_j",
+                                     "hv_j","NAME_1","NAME_2"),
                              names_to = c("Variable", "Date"),
                              names_sep = "_",
                              values_to = "RAIN")
      Rainfalldata <-dplyr::select(Rainfalldata,-Variable)
 
      Sraddata <- pivot_longer(Sraddata,
-                                    cols=-1:-11,
+                              cols=-c("longitude","latitude","startingDate","endDate","yearPi","yearHi","pl_j",
+                                      "hv_j","NAME_1","NAME_2"),
                                     names_to = c("Variable", "Date"),
                                     names_sep = "_",
                                     values_to = "SRAD")
      Sraddata <-dplyr::select(Sraddata,-Variable)
 
      Tmaxdata <- pivot_longer(Tmaxdata,
-                                    cols=-1:-11,
+                              cols=-c("longitude","latitude","startingDate","endDate","yearPi","yearHi","pl_j",
+                                      "hv_j","NAME_1","NAME_2"),
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "TMAX")
     Tmaxdata <-dplyr::select(Tmaxdata,-Variable)
 
     Tmindata <- pivot_longer(Tmindata,
-                                   cols=-1:-11,
+                             cols=-c("longitude","latitude","startingDate","endDate","yearPi","yearHi","pl_j",
+                                     "hv_j","NAME_1","NAME_2"),
                                    names_to = c("Variable", "Date"),
                                    names_sep = "_",
                                    values_to = "TMIN")
     Tmindata <-dplyr::select(Tmindata,-Variable)
   }
-
-    # RelativeHum <- pivot_longer(RelativeHum,
-    #                             cols=-1:-11,
-    #                             names_to = c("Variable", "Date"),
-    #                             names_sep = "_",
-    #                             values_to = "RHUM")
-    # RelativeHum <-select(RelativeHum,-Variable)
 
   tst <- na.omit(merge(Tmaxdata, merge(Tmindata,merge(Sraddata,Rainfalldata))))
   tst$DATE <- as.POSIXct(tst$Date, format = "%Y-%m-%d", tz = "UTC")
@@ -388,10 +376,10 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   #Soil <- na.omit(Soil) #Avoid removing some points due to missing variables (to check if that would make fail the simulations)
 
   if(AOI == TRUE){
-    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2")])
+    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "NAME_1", "NAME_2")])
      
   }else{
-    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "ID", "NAME_1", "NAME_2",
+    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "NAME_1", "NAME_2",
                                                  "yearPi","yearHi","pl_j","hv_j")])
   
   }
@@ -416,11 +404,11 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   # Set working directory to save the results (weather and soil data in DSSAT format)
   if(AOI == TRUE){
     path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", 
-                             country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/", sep="")
+                             country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/",varietyid, sep="")
     }
   else{
     path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", 
-                             country, "_",useCaseName, "/", Crop, "/transform/DSSAT/", sep="")
+                             country, "_",useCaseName, "/", Crop, "/transform/DSSAT/fieldData/",varietyid, sep="")
   }
   
   if (!dir.exists(file.path(path.to.extdata))){
