@@ -64,20 +64,27 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
   setwd(path.to.temdata)
   #Read in original FileX
   file_x <- DSSAT::read_filex(filex_temp)
-  
+  #define working path (each point to be run)
+  if(!is.na(level2) & !is.na(zone)){
+    working_path <- paste(path.to.extdata,paste0(zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }else if(is.na(level2) & !is.na(zone)){
+    working_path <- paste(path.to.extdata,paste0(zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }else if(!is.na(level2) & is.na(zone)){
+    print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2). Process stopped")
+    return(NULL)
+  }else{
+    working_path <- paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }
+  if (!dir.exists(file.path(working_path))){
+    dir.create(file.path(working_path), recursive = TRUE)
+  }
+  #copy genetic files
+  gen_parameters <- list.files(pattern = geneticfiles, full.names = TRUE) 
+  file.copy(gen_parameters, working_path,overwrite = TRUE)
+  #Set the experimental directory
+  setwd(working_path)
   
   if(AOI==TRUE){
-    #define working path (each point to be run)
-    if(is.na(level2)){
-      working_path <- paste(path.to.extdata,paste0(zone,"/EXTE", formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-    }else{
-      working_path <- paste(path.to.extdata,paste0(zone,"/",level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-    }
-    #copy genetic files
-    gen_parameters <- list.files(pattern = geneticfiles, full.names = TRUE) 
-    file.copy(gen_parameters, working_path,overwrite = TRUE)
-    #Set the experimental directory
-    setwd(working_path)
     #Make proposed changes to FileX
     file_x$FIELDS$WSTA<-paste0("WHTE", formatC(width = 4, as.integer((i)), flag = "0"))
     file_x$FIELDS$ID_SOIL<-paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))
@@ -142,13 +149,6 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     #Overwrite original FileX with new values
     DSSAT::write_filex(file_x,paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.',crop_code,'X'))
   }else{
-    #define working path (each point to be run)
-    working_path <- paste(path.to.extdata,paste0(zone,"/",'EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-    #copy genetic files
-    gen_parameters <- list.files(pattern = geneticfiles, full.names = TRUE) 
-    file.copy(gen_parameters, working_path,overwrite = TRUE)
-    #Set the experimental directory
-    setwd(working_path)
     #Make proposed changes to FileX
     file_x$FIELDS$WSTA <- paste0("WHTE", formatC(width = 4, as.integer((i)), flag = "0"))
     file_x$FIELDS$ID_SOIL<-paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))
@@ -161,7 +161,9 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     
     ex_profile <- suppressWarnings(DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i))," ", flag = "0"))))
     file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])  #Meanwhile the same date than the planting date## this is changed to a month prior to planting, right??
-    file_x$`INITIAL CONDITIONS`$SH2O<- ex_profile$SDUL #Assume field capacity as initial condition
+    #Assume a proportion between wilting point and field capacity as initial condition
+    file_x$`INITIAL CONDITIONS`$SH2O<- mapply(function(sdul, slll, index) {
+      slll + ((sdul-slll) * index)}, ex_profile$SDUL, ex_profile$SLLL, MoreArgs = list(index = index_soilwat), SIMPLIFY = FALSE)
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
     #Overwrite original FileX with new values
     DSSAT::write_filex(file_x,paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.',crop_code,'X'))
