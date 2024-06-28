@@ -9,7 +9,7 @@
 #################################################################################################################
 ## sourcing required packages                                                                                  ##
 #################################################################################################################
-packages_required <- c("chirps", "tidyverse","sf","DSSAT")
+packages_required <- c("chirps", "tidyverse","sf","DSSAT","furrr")
 
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
@@ -105,7 +105,7 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
   }else if(is.na(level2) & !is.na(zone)){
     pathOUT <- paste(path.to.extdata,paste0(zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
   }else if(!is.na(level2) & is.na(zone)){
-    print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2). Process stopped")
+    print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2) in the creation of soil and weather files. Process will stop")
     return(NULL)
   }else{
     pathOUT <- paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
@@ -120,20 +120,6 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
   Sraddata <- Sraddata[Sraddata$longitude==coords$longitude[i] & Sraddata$latitude==coords$latitude[i],]
   Rainfalldata <- Rainfalldata[Rainfalldata$longitude==coords$longitude[i] & Rainfalldata$latitude==coords$latitude[i],]
  
-  #Modify names created for some of the use cases with different column names
-  if ("Zone" %in% names(Rainfalldata)){ names(Rainfalldata)[names(Rainfalldata)=="Zone"] <- "NAME_1"}
-  if ("lat" %in% names(Rainfalldata)){ names(Rainfalldata)[names(Rainfalldata)=="lat"] <- "latitude"}
-  if ("lon" %in% names(Rainfalldata)){ names(Rainfalldata)[names(Rainfalldata)=="lon"] <- "longitude"}
-  if ("Zone" %in% names(Tmaxdata)){ names(Tmaxdata)[names(Tmaxdata)=="Zone"] <- "NAME_1"}
-  if ("lat" %in% names(Tmaxdata)){ names(Tmaxdata)[names(Tmaxdata)=="lat"] <- "latitude"}
-  if ("lon" %in% names(Tmaxdata)){ names(Tmaxdata)[names(Tmaxdata)=="lon"] <- "longitude"}
-  if ("Zone" %in% names(Tmindata)){ names(Tmindata)[names(Tmindata)=="Zone"] <- "NAME_1"}
-  if ("lat" %in% names(Tmindata)){ names(Tmindata)[names(Tmindata)=="lat"] <- "latitude"}
-  if ("lon" %in% names(Tmindata)){ names(Tmindata)[names(Tmindata)=="lon"] <- "longitude"}
-  if ("Zone" %in% names(Sraddata)){ names(Sraddata)[names(Sraddata)=="Zone"] <- "NAME_1"}
-  if ("lat" %in% names(Sraddata)){ names(Sraddata)[names(Sraddata)=="lat"] <- "latitude"}
-  if ("lon" %in% names(Sraddata)){ names(Sraddata)[names(Sraddata)=="lon"] <- "longitude"}
-  
   if(AOI == TRUE){
     Rainfalldata <- pivot_longer(Rainfalldata,
                              cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
@@ -349,57 +335,89 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
 #' @export
 #'
 #' @examples readGeo_CM(country = "Kenya",  useCaseName = "KALRO", Crop = "Maize", AOI = TRUE, season=1, Province = "Kiambu")
-readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, zone,level2,varietyid){
+readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, zone,level2=NA,varietyid){
   cat(zone)
-  pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel/", zone, '/', sep="")
+  #General input path with all the weather data
+  general_pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel/", sep="")
+  #define input path based on the organization of the folders by zone and level2 (usually just by zone)
+  if(!is.na(level2) & !is.na(zone)){
+    pathIn <- paste(general_pathIn,paste0(zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }else if(is.na(level2) & !is.na(zone)){
+    pathIn <- paste(general_pathIn,paste0(zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }else if(!is.na(level2) & is.na(zone)){
+    print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2) in datasourcing. Process stopped")
+    return(NULL)
+  }else{
+    pathIn <- paste(general_pathIn,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }
+
+  
   if(AOI == TRUE){
-    Rainfall <- readRDS(paste(pathIn,zone, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
-    Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]
-    Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]
-       #cat("Rain done")
-    SolarRadiation <- readRDS(paste(pathIn,zone, "/solarRadiation_Season_", season, "_PointData_AOI.RDS", sep=""))
-    SolarRadiation <- SolarRadiation[SolarRadiation$NAME_1 == zone, ]
-    SolarRadiation <- SolarRadiation[SolarRadiation$NAME_2 == level2, ]
-     #cat("sr done")
-      TemperatureMax <- readRDS(paste(pathIn,zone, "/temperatureMax_Season_", season, "_PointData_AOI.RDS", sep=""))
-      TemperatureMax <- TemperatureMax[TemperatureMax$NAME_1 == zone, ]
-      TemperatureMax <- TemperatureMax[TemperatureMax$NAME_2 == level2, ]
-      #cat("tm done")
-      TemperatureMin <- readRDS(paste(pathIn,zone, "/temperatureMin_Season_", season, "_PointData_AOI.RDS", sep=""))
-      TemperatureMin <- TemperatureMin[TemperatureMin$NAME_1 == zone, ]
-      TemperatureMin <- TemperatureMin[TemperatureMin$NAME_2 == level2, ]
-       #cat("tmin done")
-    #   RelativeHum <- readRDS(paste(pathIn, "relativeHumidity_Season_", season, "_PointData_AOI.RDS", sep=""))
-    # RelativeHum  <- RelativeHum[RelativeHum$NAME_1 == Province, ]
-    # cat("rh done")
-      Soil <- readRDS(paste(pathIn,zone,"/SoilDEM_PointData_AOI_profile.RDS", sep=""))
+    Rainfall <- readRDS(paste(pathIn, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
+    if(!is.na(zone)){Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]}
+    if(!is.na(level2)){Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]}
+    
+    SolarRadiation <- readRDS(paste(pathIn, "/solarRadiation_Season_", season, "_PointData_AOI.RDS", sep=""))
+    if(!is.na(zone)){SolarRadiation <- SolarRadiation[SolarRadiation$NAME_1 == zone, ]}
+    if(!is.na(level2)){SolarRadiation <- SolarRadiation[SolarRadiation$NAME_2 == level2, ]}
+    
+    TemperatureMax <- readRDS(paste(pathIn, "/temperatureMax_Season_", season, "_PointData_AOI.RDS", sep=""))
+    if(!is.na(zone)){TemperatureMax <- TemperatureMax[TemperatureMax$NAME_1 == zone, ]}
+    if(!is.na(level2)){TemperatureMax <- TemperatureMax[TemperatureMax$NAME_2 == level2, ]}
+    
+    TemperatureMin <- readRDS(paste(pathIn, "/temperatureMin_Season_", season, "_PointData_AOI.RDS", sep=""))
+    if(!is.na(zone)){TemperatureMin <- TemperatureMin[TemperatureMin$NAME_1 == zone, ]}
+    if(!is.na(level2)){TemperatureMin <- TemperatureMin[TemperatureMin$NAME_2 == level2, ]}
+    
+    
+    Soil <- readRDS(paste(pathIn,"/SoilDEM_PointData_AOI_profile.RDS", sep=""))
+    if(!is.na(zone)){Soil <- Soil[Soil$NAME_1 == zone, ]}
+    if(!is.na(level2)){Soil <- Soil[Soil$NAME_2 == level2, ]}
 
   }else{
     Rainfall <- readRDS(paste(pathIn, "Rainfall_PointData_trial.RDS", sep=""))
-    Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]
-    #Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]
-    #cat("Rain done")
+    if(!is.na(zone)){Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]}
+    if(!is.na(level2)){Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]}
+    
     SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_PointData_trial.RDS", sep=""))
-    SolarRadiation <- SolarRadiation[SolarRadiation$NAME_1 == zone, ]
-    #SolarRadiation <- SolarRadiation[SolarRadiation$NAME_2 == level2, ]
-    #cat("sr done")
+    if(!is.na(zone)){SolarRadiation <- SolarRadiation[SolarRadiation$NAME_1 == zone, ]}
+    if(!is.na(level2)){SolarRadiation <- SolarRadiation[SolarRadiation$NAME_2 == level2, ]}
+    
     TemperatureMax <- readRDS(paste(pathIn, "temperatureMax_PointData_trial.RDS", sep=""))
-    TemperatureMax <- TemperatureMax[TemperatureMax$NAME_1 == zone, ]
-    #TemperatureMax <- TemperatureMax[TemperatureMax$NAME_2 == level2, ]
-    #cat("tm done")
+    if(!is.na(zone)){TemperatureMax <- TemperatureMax[TemperatureMax$NAME_1 == zone, ]}
+    if(!is.na(level2)){TemperatureMax <- TemperatureMax[TemperatureMax$NAME_2 == level2, ]}
+    
     TemperatureMin <- readRDS(paste(pathIn, "temperatureMin_PointData_trial.RDS", sep=""))
-    TemperatureMin <- TemperatureMin[TemperatureMin$NAME_1 == zone, ]
-    #TemperatureMin <- TemperatureMin[TemperatureMin$NAME_2 == level2, ]
-    #cat("tmin done")
-    # RelativeHum <- readRDS(paste(pathIn, "relativeHumidity_PointData_trial.RDS", sep=""))
+    if(!is.na(zone)){TemperatureMin <- TemperatureMin[TemperatureMin$NAME_1 == zone, ]}
+    if(!is.na(level2)){TemperatureMin <- TemperatureMin[TemperatureMin$NAME_2 == level2, ]}
+    
     Soil <- readRDS(paste(pathIn, "SoilDEM_PointData_trial_profile.RDS", sep=""))
-    Soil <- Soil[Soil$NAME_1 == zone, ]
-    #Soil <- Soil[Soil$NAME_2 == level2, ]
+    if(!is.na(zone)){Soil <- Soil[Soil$NAME_1 == zone, ]}
+    if(!is.na(level2)){Soil <- Soil[Soil$NAME_2 == level2, ]}
   }
 
-  names(Soil)[names(Soil)=="lat"] <- "latitude"
-  names(Soil)[names(Soil)=="lon"] <- "longitude"
+  #Modify names created for some of the use cases with different column names
+  if ("Zone" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="Zone"] <- "NAME_1"}
+  if ("lat" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="lat"] <- "latitude"}
+  if ("lon" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="lon"] <- "longitude"}
+  
+  if ("Zone" %in% names(TemperatureMax)){ names(TemperatureMax)[names(TemperatureMax)=="Zone"] <- "NAME_1"}
+  if ("lat" %in% names(TemperatureMax)){ names(TemperatureMax)[names(TemperatureMax)=="lat"] <- "latitude"}
+  if ("lon" %in% names(TemperatureMax)){ names(TemperatureMax)[names(TemperatureMax)=="lon"] <- "longitude"}
+  
+  if ("Zone" %in% names(TemperatureMin)){ names(TemperatureMin)[names(TemperatureMin)=="Zone"] <- "NAME_1"}
+  if ("lat" %in% names(TemperatureMin)){ names(TemperatureMin)[names(TemperatureMin)=="lat"] <- "latitude"}
+  if ("lon" %in% names(TemperatureMin)){ names(TemperatureMin)[names(TemperatureMin)=="lon"] <- "longitude"}
+  
+  if ("Zone" %in% names(SolarRadiation)){ names(SolarRadiation)[names(SolarRadiation)=="Zone"] <- "NAME_1"}
+  if ("lat" %in% names(SolarRadiation)){ names(SolarRadiation)[names(SolarRadiation)=="lat"] <- "latitude"}
+  if ("lon" %in% names(SolarRadiation)){ names(SolarRadiation)[names(SolarRadiation)=="lon"] <- "longitude"}
+  
+  if ("Zone" %in% names(Soil)){names(Soil)[names(Soil)=="Zone"] <- "NAME_1"}
+  if ("lat" %in% names(Soil)){names(Soil)[names(Soil)=="lat"] <- "latitude"}
+  if ("lon" %in% names(Soil)){names(Soil)[names(Soil)=="lon"] <- "longitude"}
   #Soil <- na.omit(Soil) #Avoid removing some points due to missing variables (to check if that would make fail the simulations)
+  Soil <- na.omit(Soil) #Return the na.omit to coincide the metadata for the creation of the experimental file
 
   if(AOI == TRUE){
     metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "NAME_1", "NAME_2")])
@@ -444,36 +462,52 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   #Define working directory with template data (soil and weather files in DSSAT format as template)
   path.to.temdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", 
                            country, "_",useCaseName, "/", Crop, "/Landing/DSSAT/", sep="")
-  if (!dir.exists(path.to.extdata)){
-    dir.create(file.path(path.to.extdata), recursive = TRUE)
+  if (!dir.exists(path.to.temdata)){
+    print("Directory with template data (soil and weather files in DSSAT) does not exist, please add the template files. Process will stop.")
+    dir.create(file.path(path.to.temdata), recursive = TRUE)
+    return(NULL)
   }
-  setwd(path.to.extdata)
+
 
 ## Define the unique locations to run the experiments in DSSAT
 ## when AOI=TRUE it is created weather and soil data by location (unique("longitude", "latitude","NAME_1","NAME_2"))
 ## when AOI=FALSE (when we have observed field data) it is created weather and soil data by trial 
 ## (unique(longitude,latitude,"yearPi","yearHi","pl_j","hv_j"))
-  coords <- metaData
-  if(AOI==TRUE){
-    coords <- coords[(coords$NAME_1 == zone & coords$NAME_2 == level2), ]
-  }else{
-    coords <- coords[(coords$NAME_1 == zone),]
-  }
   
+  coords <- metaData
+##The following lines are removed because metaData is already a subset by zone and level2 (in case they are defined in the arguments)
   # if(AOI==TRUE){
-  #   coords <- unique(metaData[,c("longitude", "latitude","NAME_1","NAME_2")])
+  #   coords <- coords[(coords$NAME_1 == zone & coords$NAME_2 == level2), ]
   # }else{
-  #   coords <- metaData
+  #   coords <- coords[(coords$NAME_1 == zone),]
   # }
+  
+  if(AOI==TRUE){
+    coords <- unique(metaData[,c("longitude", "latitude")])
+  }else{
+    coords <- metaData
+  }
 
   grid <- as.matrix(coords)
 
   # 
   # path.to.extdata=path.to.extdata; path.to.temdata=path.to.temdata; Tmaxdata=TemperatureMax; Tmindata=TemperatureMin; Sraddata=SolarRadiation;
   # # # Rainfalldata=Rainfall; RelativeHum=RelativeHum
-# return(list())
-    
-  results <- map(seq_along(grid[,1]), process_grid_element, country=country, path.to.extdata=path.to.extdata,
-                 path.to.temdata=path.to.temdata, Tmaxdata=TemperatureMax, Tmindata=TemperatureMin, Sraddata=SolarRadiation,
-                 Rainfalldata=Rainfall, coords=coords, Soil=Soil, AOI=AOI,varietyid=varietyid,zone=zone, level2=level2) %||% print("Progress:")
+  
+  # Previous way of simulating but less efficient  
+  # results <- map(seq_along(grid[,1]), process_grid_element, country=country, path.to.extdata=path.to.extdata,
+  #                path.to.temdata=path.to.temdata, Tmaxdata=TemperatureMax, Tmindata=TemperatureMin, Sraddata=SolarRadiation,
+  #                Rainfalldata=Rainfall, coords=coords, Soil=Soil, AOI=AOI,varietyid=varietyid,zone=zone, level2=level2) %||% print("Progress:")
+
+  # Set up parallel processing (for more efficient processing)
+  plan(multicore)
+  
+  results <- future_map(seq_along(grid[,1]), function(i) {
+    print(paste("Progress:", i, "out of", length(grid[,1])))
+    process_grid_element(i, country=country, path.to.extdata=path.to.extdata,
+                         path.to.temdata=path.to.temdata, Tmaxdata=TemperatureMax, Tmindata=TemperatureMin,
+                         Sraddata=SolarRadiation, Rainfalldata=Rainfall, coords=coords, Soil=Soil,
+                         AOI=AOI, varietyid=varietyid, zone=zone, level2=level2)
+  })
+  
 }
