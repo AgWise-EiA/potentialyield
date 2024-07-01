@@ -12,7 +12,7 @@
 #################################################################################################################
 ## sourcing required packages 
 #################################################################################################################
-packages_required <- c("tidyverse", "lubridate","DSSAT")
+packages_required <- c("tidyverse", "lubridate","DSSAT","furrr","future")
 
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
@@ -60,7 +60,7 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI=TRUE, 
                         crop_code,plantingWindow=1,number_years,varietyid, zone, level2=NA,
                         fertilizer =FALSE,geneticfiles,index_soilwat=1){
-  print(paste("Experiment number", i))
+  #print(paste("Experiment number", i))
   setwd(path.to.temdata)
   #Read in original FileX
   file_x <- DSSAT::read_filex(filex_temp)
@@ -275,12 +275,12 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   names(Soil)[names(Soil)=="lat"] <- "latitude"
   names(Soil)[names(Soil)=="lon"] <- "longitude"
   Soil <- na.omit(Soil)
-  
+  #Modify names created for some of the use cases with different column names
+  if ("Zone" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="Zone"] <- "NAME_1"}
+  if ("lat" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="lat"] <- "latitude"}
+  if ("lon" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="lon"] <- "longitude"}
   if(AOI == TRUE){
-    #Modify names created for some of the use cases
-    if ("Zone" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="Zone"] <- "NAME_1"}
-    if ("lat" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="lat"] <- "latitude"}
-    if ("lon" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="lon"] <- "longitude"}
+
     metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "NAME_1", "NAME_2")])
   }else{
     metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "NAME_1", "NAME_2",
@@ -317,8 +317,18 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   
   
   
+  # Previous way of simulating but less efficient  
+  # results <- map(seq_along(grid[,1]), create_filex, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
+  #                coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
+  #                zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat) %||% print("Progress:")
   
-  results <- map(seq_along(grid[,1]), create_filex, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
+  # Set up parallel processing (for more efficient processing)
+  plan(multicore)
+  results <- future_map(seq_along(grid[,1]), function(i) {
+    print(paste("Progress:", i, "out of", length(grid[,1])))
+    create_filex(i, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
                  coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
-                 zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat) %||% print("Progress:")}
+                 zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat)
+  })
+}
 
