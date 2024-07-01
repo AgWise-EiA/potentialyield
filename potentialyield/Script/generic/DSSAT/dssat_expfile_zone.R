@@ -12,7 +12,7 @@
 #################################################################################################################
 ## sourcing required packages 
 #################################################################################################################
-packages_required <- c("tidyverse", "lubridate","DSSAT","furrr")
+packages_required <- c("tidyverse", "lubridate","DSSAT","furrr","future")
 
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
