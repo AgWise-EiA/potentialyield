@@ -12,7 +12,7 @@
 #################################################################################################################
 ## sourcing required packages 
 #################################################################################################################
-packages_required <- c("tidyverse", "lubridate","DSSAT","furrr","future")
+packages_required <- c("tidyverse", "lubridate","DSSAT","furrr","future","future.apply")
 
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
@@ -259,13 +259,23 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
     names(countryCoord) <- c("longitude", "latitude", "plantingDate", "harvestDate","startingDate")
     ground <- countryCoord
   }
-  #To verify if the weather inputs are going to be always in datasourcing result instead of potentialyield raw
-  #pathIn <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/raw/geo_4cropModel/", sep="")
-  pathIn <- paste("/home/jovyan/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/geo_4cropModel/", sep="")
+  #General input path with all the weather data
+  general_pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel", sep="")
+  #define input path based on the organization of the folders by zone and level2 (usually just by zone)
+  if(!is.na(level2) & !is.na(zone)){
+    pathIn <- paste(general_pathIn,paste0(zone,'/',level2), sep = "/")
+  }else if(is.na(level2) & !is.na(zone)){
+    pathIn <- paste(general_pathIn,zone, sep = "/")
+  }else if(!is.na(level2) & is.na(zone)){
+    print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2) in datasourcing. Process stopped")
+    return(NULL)
+  }else{
+    pathIn <- general_pathIn
+  }
   
   if(AOI == TRUE){
-    Rainfall <- readRDS(paste(pathIn,zone, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
-    Soil <- readRDS(paste(pathIn,zone,"/SoilDEM_PointData_AOI_profile.RDS", sep=""))
+    Rainfall <- readRDS(paste(pathIn, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
+    Soil <- readRDS(paste(pathIn,"/SoilDEM_PointData_AOI_profile.RDS", sep=""))
     
   }else{
     Rainfall <- readRDS(paste(pathIn, "Rainfall_PointData_trial.RDS", sep=""))
@@ -290,8 +300,21 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   
   
   metaData <- merge(metaDataWeather,metaData_Soil)
+  
+  #Currently the number of years are not right for AOI=TRUE because metaData$startingDate is just %m-%d format without any year
   if(AOI==TRUE){
-    number_years <- max(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))- min(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))
+    #number_years <- max(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))- min(lubridate::year(as.Date(metaData$startingDate, "%Y-%m-%d")))
+    #Select just one row to define maximum and minimum date
+    Rainfall <- Rainfall[1, ]
+    if ("country" %in% names(Rainfall)) {Rainfall<- subset(Rainfall, select = -country)}
+    Rainfall <- pivot_longer(Rainfall,
+                                 cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
+                                 names_to = c("Variable", "Date"),
+                                 names_sep = "_",
+                                 values_to = "RAIN"
+                                )
+    number_years <- max(lubridate::year(as.Date(Rainfall$Date, "%Y-%m-%d")))- min(lubridate::year(as.Date(Rainfall$Date, "%Y-%m-%d")))
+    
   }else{
     number_years <- 1
   }
@@ -315,20 +338,23 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   cropid <- which(crops == Crop)
   crop_code <- cropcode_supported[cropid]
   
-  
-  
+  # Create a list of indices
+  indices <- seq_along(grid[,1])
+
   # Previous way of simulating but less efficient  
   # results <- map(seq_along(grid[,1]), create_filex, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
   #                coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
   #                zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat) %||% print("Progress:")
   
   # Set up parallel processing (for more efficient processing)
-  plan(multicore)
-  results <- future_map(seq_along(grid[,1]), function(i) {
-    print(paste("Progress:", i, "out of", length(grid[,1])))
+  plan(multisession, workers = 11)
+  results <- future_lapply(indices, function(i) {
+
     create_filex(i, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
                  coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
                  zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat)
-  })
+    
+    return(results)
+    })
 }
 
