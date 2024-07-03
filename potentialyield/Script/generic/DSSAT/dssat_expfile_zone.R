@@ -203,7 +203,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
 #'                         geneticfiles = "MZCER048",index_soilwat=1)
 
 dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Planting_month_date=NULL,Harvest_month_date=NULL, 
-                          ID="TLID",season =1, plantingWindow=1,varietyid, zone, level2=NA, fertilizer=F,geneticfiles,index_soilwat=1){  
+                          ID="TLID",season =1, plantingWindow=1,varietyid, zone, level2=NA, fertilizer=F,geneticfiles,index_soilwat=1,pathIn_zone =F){  
   print(paste("Variety:", varietyid,"Zone:", zone))
   if(AOI == TRUE){
     if(is.null(Planting_month_date) | is.null(Harvest_month_date)){
@@ -262,13 +262,17 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   #General input path with all the weather data
   general_pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel", sep="")
   #define input path based on the organization of the folders by zone and level2 (usually just by zone)
-  if(!is.na(level2) & !is.na(zone)){
-    pathIn <- paste(general_pathIn,paste0(zone,'/',level2), sep = "/")
-  }else if(is.na(level2) & !is.na(zone)){
-    pathIn <- paste(general_pathIn,zone, sep = "/")
-  }else if(!is.na(level2) & is.na(zone)){
-    print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2) in datasourcing. Process stopped")
-    return(NULL)
+  if (pathIn_zone == T) {
+     if(!is.na(level2) & !is.na(zone)){
+       pathIn <- paste(general_pathIn,paste0(zone,'/',level2), sep = "/")
+     }else if(is.na(level2) & !is.na(zone)){
+       pathIn <- paste(general_pathIn,zone, sep = "/")
+     }else if(!is.na(level2) & is.na(zone)){
+       print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2) in datasourcing. Process stopped")
+       return(NULL)
+     }else{
+       pathIn <- general_pathIn
+     }
   }else{
     pathIn <- general_pathIn
   }
