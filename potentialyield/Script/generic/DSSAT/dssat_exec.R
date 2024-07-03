@@ -6,7 +6,7 @@
 # Credentials : EiA, 2024
 # Last modified April 09, 2024 
 
-packages_required <- c("tidyverse", "DSSAT")
+packages_required <- c("tidyverse", "lubridate","DSSAT","furrr","future","future.apply")
 
 # check and install packages that are not yet installed
 installed_packages <- packages_required %in% rownames(installed.packages())
@@ -16,6 +16,8 @@ if(any(installed_packages == FALSE)){
 # load required packages
 invisible(lapply(packages_required, library, character.only = TRUE))
 
+
+
 #' Individual function to run DSSAT
 #'
 #' @param i run number
@@ -23,17 +25,14 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #' @param TRT number of treatments to be run from the experimental file
 #' @param AOI True if the data is required for target area, and false if it is for trial sites
 #' @param crop_code Code of the crop in DSSAT (e.g., MZ for maize) created in the function dssat.exec.
-#' @param zone Name of the administrative level 1 for the specific location the experimental file is created.
-#' @param level2 Name of the administrative level 2 (has to be part of the administrative level 1 or "zone" of the country) 
-#'        for the specific location the experimental file is created
 #'
 #' @return DSSAT outputs
 #' @export
 #'
 #' @examples rundssat(1)
 
-rundssat <-function(i,path.to.extdata,TRT,AOI=TRUE,crop_code,zone,level2=NA){
-    setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
+rundssat <-function(i,path.to.extdata,TRT,AOI=TRUE,crop_code){
+  setwd(paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/"))
 
   # Generate a DSSAT batch file using a tibble
   options(DSSAT.CSM="/opt/DSSAT/v4.8.1.40/dscsm048")
@@ -42,7 +41,12 @@ rundssat <-function(i,path.to.extdata,TRT,AOI=TRUE,crop_code,zone,level2=NA){
   # Run DSSAT-CSM
   run_dssat(file_name="DSSBatch.v48",suppress_output = TRUE)
   # Change output file name
-  file.rename("Summary.OUT", paste0(path.to.extdata, 'EXTE', formatC(width = 4, as.integer((i)), flag = "0"), '/', 'EXTE', formatC(width = 4, as.integer((i)), flag = "0"), '.OUT'))
+  new_file <-  paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.OUT')
+  # Check if the output file already exists and remove it if it does
+  if (file.exists(new_file)) {
+    file.remove(new_file)
+  }
+  file.rename("Summary.OUT",new_file)
   gc()
 }
 
@@ -66,17 +70,29 @@ rundssat <-function(i,path.to.extdata,TRT,AOI=TRUE,crop_code,zone,level2=NA){
  dssat.exec <- function(country, useCaseName, Crop, AOI = TRUE,TRT,varietyid, zone, level2=NA){  
      
   #Set working directory to save the results
-  if (AOI==TRUE){
-    if(is.na(level2)){
-      path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/", varietyid,"/",zone,"/", sep="")
-    }else{
-      path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/", varietyid,"/",zone,"/",level2,"/", sep="")
-    }
-    
-  }else{
-    path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/fieldData/",varietyid,"/",zone,"/", sep="")
-  }
-  
+   if(AOI == TRUE){
+     path.to.extdata_ini <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/AOI/",varietyid, sep="")
+   }else{
+     path.to.extdata_ini <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/fieldData/",varietyid, sep="")
+   }
+   
+   
+   #define working path or path to run the model
+   if(!is.na(level2) & !is.na(zone)){
+     path.to.extdata <- paste(path.to.extdata_ini,zone,level2, sep = "/")
+   }else if(is.na(level2) & !is.na(zone)){
+     path.to.extdata <- paste(path.to.extdata_ini,zone, sep = "/")
+   }else if(!is.na(level2) & is.na(zone)){
+     print("You need to define first a zone (administrative level 1) to be able to run the model for level 2 (administrative level 2). Process stopped")
+     return(NULL)
+   }else{
+     path.to.extdata <- path.to.extdata_ini
+   }
+   if (!dir.exists(file.path(path.to.extdata))){
+     print("You need to create the input files (weather, soil and experimental data) before running the model. Process stopped")
+     return(NULL)
+   }
+   
   setwd(path.to.extdata)
   
   folders <- list.dirs(".", full.names = FALSE, recursive = TRUE)
@@ -89,6 +105,26 @@ rundssat <-function(i,path.to.extdata,TRT,AOI=TRUE,crop_code,zone,level2=NA){
   
   cropid <- which(crops == Crop)
   crop_code <- cropcode_supported[cropid]
- 
-  results <- map(seq_along(matching_folders), rundssat,path.to.extdata=path.to.extdata,TRT=TRT, AOI=AOI,crop_code=crop_code,zone=zone,level2=level2) %||% print("Progress:")
+  # Create a list of indices
+  indices <- seq_along(matching_folders)
+  
+  # Create a log file to see the progress of the simulations
+  log_file <- paste(path.to.extdata,"progress_log.txt",sep='/')
+  if (file.exists(log_file)) {
+    file.remove(log_file)
+  }
+
+  plan(multisession, workers = 11)
+  results <- future_lapply(indices, function(i) {
+    message <- paste("Progress:", i, "out of", length(indices))
+    cat(message, "\n", file = log_file, append = TRUE)
+    
+    result <- rundssat(i, path.to.extdata=path.to.extdata, TRT=TRT,  AOI=AOI,crop_code=crop_code)
+
+    message2 <- paste("Finished:", i, "out of", length(indices))
+    cat(message2, "\n", file = log_file, append = TRUE)
+    
+    return(result)
+  })
+  
 }
