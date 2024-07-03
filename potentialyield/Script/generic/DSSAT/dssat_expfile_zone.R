@@ -350,8 +350,12 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   #                zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat) %||% print("Progress:")
   
   setwd(path.to.extdata)
-  log_file <- "progress_log_exp.txt"
+  #create a log file to see the progress
+  log_file <- paste(path.to.extdata,"progress_log_exp.txt",sep='/')
   
+  if (file.exists(log_file)) {
+    file.remove(log_file)
+  }
   # Set up parallel processing (for more efficient processing)
   plan(multisession, workers = 11)
   results <- future_lapply(indices, function(i) {
@@ -361,6 +365,9 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
     create_filex(i, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
                  coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
                  zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat)
+    
+    message2 <- paste("Finished:", i, "out of", length(indices))
+    cat(message2, "\n", file = log_file, append = TRUE)
     
     return(results)
     })
