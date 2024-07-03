@@ -320,6 +320,9 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   }
   metaData <- unique(metaData[,c("longitude", "latitude","NAME_1","NAME_2")])
   coords <- merge(metaData,ground)
+  if(!is.na(zone)){coords <- coords[coords$NAME_1==zone,]}
+  if(!is.na(level2)){coords <- coords[coords$NAME_1==level2,]}
+  
   coords <- coords[coords$NAME_1==zone,]
   grid <- as.matrix(coords)
   
@@ -346,9 +349,14 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   #                coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
   #                zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat) %||% print("Progress:")
   
+  setwd(path.to.extdata)
+  log_file <- "progress_log_exp.txt"
+  
   # Set up parallel processing (for more efficient processing)
   plan(multisession, workers = 11)
   results <- future_lapply(indices, function(i) {
+    message <- paste("Progress experiment:", i, "out of", length(indices))
+    cat(message, "\n", file = log_file, append = TRUE)
 
     create_filex(i, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
                  coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
