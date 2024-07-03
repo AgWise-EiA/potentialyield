@@ -330,26 +330,32 @@ process_grid_element <- function(i,country,path.to.extdata,path.to.temdata,Tmaxd
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
 #' @param AOI True if the data is required for target area, and false if it is for trial sites
 #' @param season when data is needed for more than one season, this needs to be provided to be used in the file name
+#' @param pathIn_zone TRUE if the input data (in geo_4cropModel) are organized by zone or province and false if it is just one file 
 
 #' @return weather and soil data in DSSAT format
 #' @export
 #'
 #' @examples readGeo_CM(country = "Kenya",  useCaseName = "KALRO", Crop = "Maize", AOI = TRUE, season=1, Province = "Kiambu")
-readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, zone,level2=NA,varietyid){
-  cat(zone)
+readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, zone,level2=NA,varietyid,pathIn_zone = T){
+  #cat(zone)
   #General input path with all the weather data
-  general_pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel/", sep="")
+  general_pathIn <- paste("~/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel", sep="")
   #define input path based on the organization of the folders by zone and level2 (usually just by zone)
-  if(!is.na(level2) & !is.na(zone)){
-    pathIn <- paste(general_pathIn,paste0(zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-  }else if(is.na(level2) & !is.na(zone)){
-    pathIn <- paste(general_pathIn,paste0(zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-  }else if(!is.na(level2) & is.na(zone)){
-    print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2) in datasourcing. Process stopped")
-    return(NULL)
+  if (pathIn_zone == T) {
+    if(!is.na(level2) & !is.na(zone)){
+      pathIn <- paste(general_pathIn,zone,level2, sep = "/")
+    }else if(is.na(level2) & !is.na(zone)){
+      pathIn <- paste(general_pathIn,zone, sep = "/")
+    }else if(!is.na(level2) & is.na(zone)){
+      print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2) in datasourcing. Process stopped")
+      return(NULL)
+    }else{
+      pathIn <- general_pathIn
+    }
   }else{
-    pathIn <- paste(general_pathIn,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+    pathIn <- general_pathIn
   }
+
 
   
   if(AOI == TRUE){
@@ -489,7 +495,8 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   }
 
   grid <- as.matrix(coords)
-
+  # Create a list of indices
+  indices <- seq_along(grid[,1])
   # 
   # path.to.extdata=path.to.extdata; path.to.temdata=path.to.temdata; Tmaxdata=TemperatureMax; Tmindata=TemperatureMin; Sraddata=SolarRadiation;
   # # # Rainfalldata=Rainfall; RelativeHum=RelativeHum
@@ -499,15 +506,25 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   #                path.to.temdata=path.to.temdata, Tmaxdata=TemperatureMax, Tmindata=TemperatureMin, Sraddata=SolarRadiation,
   #                Rainfalldata=Rainfall, coords=coords, Soil=Soil, AOI=AOI,varietyid=varietyid,zone=zone, level2=level2) %||% print("Progress:")
 
-  # Set up parallel processing (for more efficient processing)
-  plan(multicore)
+  log_file <- paste(path.to.extdata,"progress_log_readGeo_CM.txt",sep='/')
   
-  results <- future_map(seq_along(grid[,1]), function(i) {
-    print(paste("Progress:", i, "out of", length(grid[,1])))
+  if (file.exists(log_file)) {
+    file.remove(log_file)
+  }
+  
+  
+  # Set up parallel processing (for more efficient processing)
+  plan(multisession, workers = 11)
+  
+  results <- future_lapply(indices, function(i) {
+    message <- paste("Progress experiment:", i, "out of", length(indices),"for variety", varietyid)
+    cat(message, "\n", file = log_file, append = TRUE)
     process_grid_element(i, country=country, path.to.extdata=path.to.extdata,
                          path.to.temdata=path.to.temdata, Tmaxdata=TemperatureMax, Tmindata=TemperatureMin,
                          Sraddata=SolarRadiation, Rainfalldata=Rainfall, coords=coords, Soil=Soil,
                          AOI=AOI, varietyid=varietyid, zone=zone, level2=level2)
+    message2 <- paste("Finished:", i, "out of", length(indices),"for variety", varietyid)
+    cat(message2, "\n", file = log_file, append = TRUE)
   })
   
 }
