@@ -311,6 +311,7 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
     #Select just one row to define maximum and minimum date
     Rainfall <- Rainfall[1, ]
     if ("country" %in% names(Rainfall)) {Rainfall<- subset(Rainfall, select = -country)}
+    if ("ID" %in% names(Rainfall)) {Rainfall<- subset(Rainfall, select = -ID)}
     Rainfall <- pivot_longer(Rainfall,
                                  cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
                                  names_to = c("Variable", "Date"),
