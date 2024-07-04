@@ -1,3 +1,11 @@
+# Merge output of the DSSAT simulations for diverse locations
+
+# Introduction: 
+# This script allows Merge output of the DSSAT simulations for diverse locations
+# Authors : P.Moreno, , L. Leroux A. Sila, S. Mkuhlani, E.Bendito Garcia 
+# Credentials : EiA, 2024
+# Last modified July 4, 2024 
+
 #################################################################################################################
 ## sourcing required packages
 #################################################################################################################
@@ -10,17 +18,22 @@ if(any(installed_packages == FALSE)){
 
 # load required packages
 invisible(lapply(packages_required, library, character.only = TRUE))
-library()
+
 #' @param country country name
 #' @param useCaseName use case name  name
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
 #' @param AOI True if the data is required for target area, and false if it is for trial sites
 #' @param season when data is needed for more than one season, this needs to be provided to be used in the file name
 #' @param varietyid id of the variety based on the cultivar file of DSSAT (column @VAR# in the cultivar file and parameter INGENO in the experimental file *.**X)
+#' @param zone_folder When TRUE the output folders are organized by administrative level 1.
+#' @param level2_foler When TRUE the output folders are organized by administrative level 2 (has to be part of the administrative level 1 or "zone" of the country) 
+#'        for the specific location the experimental file is created
+#'        
 #' @return merged results from DSSAT in RDS format
 #'
-#' @examples merge_DSSAT_output(country="Rwanda", useCaseName="RAB",Crop="Maize")
-merge_DSSAT_output <- function(country, useCaseName,Crop, AOI=FALSE,season=NULL,varietyid){
+#' @examples merge_DSSAT_output(country="Rwanda", useCaseName="RAB",Crop="Maize",varietyid="890011", zone_folder=T, level2_folder=F)
+merge_DSSAT_output <- function(country, useCaseName,Crop, AOI=FALSE,season=NULL,varietyid, zone_folder =T, level2_folder=F){
+
 
   if (AOI==TRUE){
     if(is.null(season)){
@@ -31,6 +44,10 @@ merge_DSSAT_output <- function(country, useCaseName,Crop, AOI=FALSE,season=NULL,
     
   }else{
     path.to.extdata <- paste("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/DSSAT/fieldData/",varietyid,sep="")
+  }
+  if (!dir.exists(file.path(path.to.extdata))){
+    print("You need to run the experiments before running the model. Process stopped")
+    return(NULL)
   }
   setwd(path.to.extdata)
 
@@ -43,15 +60,25 @@ merge_DSSAT_output <- function(country, useCaseName,Crop, AOI=FALSE,season=NULL,
       file <- file[,c("XLAT","LONG","TRNO","TNAM","PDAT", "HDAT","CWAM","HWAH","CNAM","GNAM","NDCH","TMAXA",
                 "TMINA","SRADA","PRCP","ETCP","ESCP","CRST")]
       file$file_name <- .x
-      if (AOI==TRUE){
+
+      #define the name of the zone and level2
+      if(level2_folder == T & zone_folder ==T){
         test <- mgsub(.x, c(path.to.extdata, "/EXTE.*"), c("", ""))
         test <- strsplit(test, "/")[[1]]
         test <- test[test != ""]
         file$zone <- test[1]
         file$level2 <-test[2]
-      }else{
+      }else if(level2_folder == F & zone_folder ==T){
         file$zone <- mgsub(.x, c(path.to.extdata,"/", "/EXTE.*"), c("","",""))
+        file$level2 <- NA
+      }else if(level2_folder == T  & zone_folder ==F){
+        print("You need to define first a zone (administrative level 1) to be able to run the model for level 2 (administrative level 2). Process stopped")
+        return(NULL)
+      }else{
+        file$zone <- NA
+        file$level2 <- NA
       }
+      file$variety <- varietyid
       file
     }, error = function(e) {
       cat("Error processing file:", .x, "\n", e$message, "\n")
@@ -60,65 +87,22 @@ merge_DSSAT_output <- function(country, useCaseName,Crop, AOI=FALSE,season=NULL,
 
   }, .id = "id")
   
+  # Specify the results directory path
   if (AOI==TRUE){
-    saveRDS(results, file = paste0("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/DSSAT/AOI/useCase_", country, "_",useCaseName, "_", Crop,"_variety_",varietyid,"_AOI_season_",season,".rds"))
-    
+    dir_path <-  paste0("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/DSSAT/AOI/")
   }else{
-    saveRDS(results, file = paste0("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/DSSAT/useCase_", country, "_",useCaseName, "_", Crop,"_variety_",varietyid,".rds"))
-    
+    dir_path <-  paste0("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/DSSAT/fieldData/")
   }
+  # Check if the directory exists
+  if (!dir.exists(dir_path)) {
+    # Create the directory
+    dir.create(dir_path, recursive = TRUE)
+  }
+  
+
+  saveRDS(results, file = paste0(dir_path, "useCase_", country, "_",useCaseName, "_", Crop,"_variety_",varietyid,"_AOI_season_",season,".rds"))
+
   
 }
   
   
- 
-  
-  
-  
-#   provs <- list.files(full.names = TRUE)
-#   
-#   p_all <- NULL
-#   
-#   for (p in 1:length(provs)){
-#     
-#   lf <- list.files(provs[p])
-#   
-#   f_all <- NULL
-#   
-#   for (i in 1:length(lf)){
-#     
-#     base <- lf[i]
-# 
-#     if(file.exists(paste0(provs[p], '/', base,"/", base, ".OUT"))==TRUE){
-#       a <- read_output(paste0(provs[p], '/',base,"/", base, ".OUT"))
-#       d <- a[,c("XLAT","LONG","TRNO","TNAM","PDAT", "HDAT","CWAM","HWAH","CNAM","GNAM","NDCH","TMAXA",
-#                   "TMINA","SRADA","PRCP","ETCP","ESCP")]
-#       # b <- read.table(paste0(base,"/", base, ".OUT"), skip = 4, header = F)
-#       b <- data.frame(d)
-#       # d$XLAT <- b$V14
-#       # d$XLON <- b$V15
-#       d$base <- base
-#         
-#         # colnames(d) <- c('latitude','longitude','treatment.number','treatment.name','planting.date','harvesting.date','Total.aboveground.biomass(kg/ha)','WLY(kg/ha)',
-#         #                  'Total.aboveground.bio.N%(kg/ha)','GrainNMaturity(kg/ha)','crop.duration','Av.Tmax(°C)',
-#         #                  'Av.Tmin(°C)','A.Solar.rad(MJ/m2/d)','Total.Seasonal.Rainfall(mm)',
-#         #                  'Total.Seasonal.ETranspiration(mm)','Total.Seasonal.Soil.Evaporation(mm)')
-#         
-#       d$WUE <- d$HWAH / d$PRCP
-#         
-#       f_all <- rbind(f_all, d)
-#     }
-#     
-#     p_all <- rbind(p_all, f_all)
-#   }
-#   p_all <- unique(p_all)
-#   } 
-#   if (AOI==TRUE){
-#     saveRDS(p_all, file = paste0("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/DSSAT/AOI/useCase_", country, "_",useCaseName, "_", Crop,"_AOI_season_",season,".rds"))
-#       
-#   }else{
-#     saveRDS(p_all, file = paste0("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName, "/", Crop, "/result/DSSAT/useCase_", country, "_",useCaseName, "_", Crop,".rds"))
-#     
-#   }
-#   
-# }
