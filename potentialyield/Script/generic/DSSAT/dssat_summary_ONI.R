@@ -12,7 +12,7 @@
 #### Getting started #######
 
 # 1. Sourcing required packages -------------------------------------------
-packages_required <- c("DSSAT","tidyverse","dplyr", "purrr", "ggridges","patchwork", "Rmisc", "terra", "cowplot", "foreach","doParallel")
+packages_required <- c("DSSAT","tidyverse", "ggridges","patchwork", "Rmisc", "terra", "cowplot", "foreach","doParallel")
 
 installed_packages <- packages_required %in% rownames(installed.packages())
 if(any(installed_packages == FALSE)){
@@ -27,6 +27,7 @@ num_cores <- parallel::detectCores() - 1
 registerDoParallel(num_cores)
 
 # 2. Defining required functions -------------------------------------------
+
 get_median_variable <- function(initial_date, final_date, variable, data) {
   filtered_data <- data %>%
     filter(date >= as.Date(initial_date) & date <= as.Date(final_date))
@@ -61,6 +62,21 @@ oni_map <- function(data, x,y, fill, HWAH, shp, limits){
 }
 
 # 3. Aggregated DSSAT output  -------------------------------------------
+#(To check if function from L. Leroux is more efficient)
+#' @param country country name
+#' @param useCaseName use case name  name
+#' @param Crop the name of the crop to be used in creating file name to write out the result.
+#' @param AOI True if the data is required for target area, and false if it is for trial sites
+#' @param season when data is needed for more than one season, this needs to be provided to be used in the file name
+#' @param varietyids ids of the varieties based on the cultivar file of DSSAT (column @VAR# in the cultivar file and parameter INGENO in the experimental file *.**X)
+#' @param zone_folder When TRUE the output folders are organized by administrative level 1.
+#' @param level2_foler When TRUE the output folders are organized by administrative level 2 (has to be part of the administrative level 1 or "zone" of the country) 
+#'        for the specific location the experimental file is created
+#'        
+#' @return merged results from DSSAT in RDS format
+#'
+#' @examples merge_DSSAT_output(country="Rwanda", useCaseName="RAB",Crop="Maize",varietyids=c("890011","890012"), zone_folder=T, level2_folder=F)
+
 source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/merge_DSSAT_output.R")
 
 # 4. Get ONI Index  -------------------------------------------
@@ -264,7 +280,7 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
  
  
  ### 4.5.2. Plot by variety ####
- # Meand and SEM plot
+ # Mean and SEM plot
  pd <- position_dodge(0.2)
  dssat_oni %>%
    summarySE(measurevar="HWAH", groupvars=c("Variety","TNAM", "ENSO"))%>%
@@ -281,9 +297,9 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
    ylab(expression(bold('Yield'~(kg~ha^{-1})))) + xlab(expression(bold("Planting time")))
 
  if(AOI==TRUE){
-   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"__ONI_DotPlot_Variety.pdf"))
+   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_DotPlot_Variety.pdf"))
  }else{
-   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI__ONI_DotPlot_Variety.pdf"))
+   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_DotPlot_Variety.pdf"))
  }
  
  
@@ -312,7 +328,12 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
    ylab(expression(bold("ENSO")))+xlab(expression(bold("Planting time")))+
    ggtitle("Standard Deviation")
  p1+p2+plot_layout(ncol = 2) 
- ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_",Extent,"_season_",Season,"_ONI_HeatMap_Variety.pdf"))
+ 
+ if(AOI==TRUE){
+   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_HeatMap_Variety.pdf"))
+ }else{
+   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_HeatMap_Variety.pdf"))
+ }
  
  ## 4.6. Maps ####
  
@@ -320,9 +341,7 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
  countryShp <- geodata::gadm(country, level = 1, path=paste0("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName,"/",Crop,"/result/DSSAT/", sep=""))
  country_sf <- sf::st_as_sf(countryShp)
  
-															
-  
-								 
+							 
   
  ### 4.6.1. Global Map ####
  dssat_oni.g <- dssat_oni %>%
@@ -337,7 +356,7 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
  
  ## Neutral
  dssat.neutral.g <- subset(dssat_oni.g, dssat_oni.g$ENSO %in% 'Neutral', select = -c(ENSO, N))
- dssat.neutral.g <- na.omit(dssat.neutral.g[,c(2,1,3,4,5,6)])
+dssat.neutral.g <- na.omit(dssat.neutral.g[,c(2,1,3,4,5,6)])
  
  ## Nino
  dssat.nino.g <- subset(dssat_oni.g, dssat_oni.g$ENSO %in% 'Niño', select = -c(ENSO, N))
@@ -385,9 +404,112 @@ plot_grid(
    # rel_heights values control vertical title margins
    rel_heights = c(0.1, 1)
  )
- 
-ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_",Extent,"_season_",Season,"_ONI_Maps_Global.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
 
+if(AOI==TRUE){
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_Maps_Global.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
+}else{
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_Maps_Global.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
+}
+
+##################################################
+### Find optimum planting dates and plot them ####
+##################################################
+
+dssat_oni$year<-year(dssat_oni$PDAT)
+dssat_oni$date<-dssat_oni$PDAT
+dssat_oni$doy<-strftime(dssat_oni$PDAT,format="%j")
+dssat_oni$ydoy<-strftime(dssat_oni$PDAT,format="%y%j")
+dssat_oni<-as.data.frame(dssat_oni)
+
+gps <- readRDS(paste0("~/agwise-datacuration/dataops/datacuration/Data/useCase_", country, "_",useCaseName,"/", Crop, "/result/AOI_GPS.RDS"))
+
+
+pyd <- merge(gps, dssat_oni,by.x=c("lon","lat"), by.y=c("Long","Lat"))
+
+pyd$ONI<-pyd$med_variable
+pyd$NAME_0<-pyd$country
+pyd$yield <-pyd$HWAH
+pyd$prov <-pyd$Loc
+
+pyd_select<-pyd[,c("NAME_0", "NAME_1","NAME_2","lon","lat","TRNO","TNAM","PDAT",
+                   "yield","Variety","prov","ONI","ENSO","year","date","doy",
+                   "ydoy")]
+
+
+summary_pyd<-pyd_select %>%
+  dplyr::group_by(lon,lat,Variety,ENSO,TRNO,TNAM,doy) %>%
+  dplyr::summarize(median = median(yield, na.rm = TRUE))
+
+
+
+#get only top 5 optimum dates per ENSO, variety, and location
+max_median_summary_poptions <- summary_pyd %>%  
+  group_by(lon,lat,Variety,ENSO) %>% 
+  slice_max(median,n=5) %>%
+  select(TRNO,TNAM,median, doy) %>%
+  arrange(ENSO,Variety, desc(median))%>%
+  filter(!is.na(ENSO))
+
+# Save the top optimum 5 planting dates per ENSO per variety per location
+if(AOI ==TRUE){
+  saveRDS(max_median_summary_poptions,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_optimum_planting5.RDS" ))
+}else{
+  saveRDS(max_median_summary_poptions,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_optimum_planting5.RDS" ))
+}
+#get only one optimum date
+max_median_summary <- summary_pyd %>%  
+  group_by(lon,lat,Variety,ENSO) %>% 
+  slice_max(median) %>%
+  select(TRNO,TNAM,median, doy) %>%
+  arrange(desc(median))%>%
+  filter(!is.na(ENSO))
+
+# Save the top optimum planting date per ENSO per variety per location
+if(AOI ==TRUE){
+  saveRDS(max_median_summary,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_optimum_planting.RDS" ))
+}else{
+  saveRDS(max_median_summary,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_optimum_planting.RDS" ))
+}
+
+year <- 2023
+max_median_summary$doyy <- as.Date(as.numeric(as.character(max_median_summary$doy))-1, origin = paste0(year, "-01-01"))
+max_median_summary$Opt_date <- format(max_median_summary$doyy, "%d-%b")
+
+max_median_summary$TRNO <-factor(max_median_summary$TRNO)
+
+max_median_summary$Opt_date <- factor(max_median_summary$Opt_date, 
+                                      levels = unique(max_median_summary$Opt_date[order(max_median_summary$TRNO)]))
+
+max_median_summary <- na.omit(max_median_summary)
+d<-max_median_summary %>%
+  ggplot() +
+  geom_raster(aes(x = lon, y = lat, fill = Opt_date)) +
+  labs(fill ="Opt. Date")+
+  scale_fill_viridis_d()+
+  facet_grid(Variety~ENSO)+
+  theme_bw()+
+  theme(legend.position = "right", aspect.ratio = 1, 
+        axis.text.x = element_text(angle = 90, hjust = 1,size = 14, face ="bold"),
+        axis.text.y = element_text(size = 14, face ="bold"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(size = 16, face = "bold"),
+        strip.background = element_blank(),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16, face = "bold"))+ 
+  geom_sf(data=country_sf, fill=NA, color="white", linewidth=0.5)+
+  coord_sf(xlim=c(min(max_median_summary$lon), max(max_median_summary$lon)), 
+           ylim=c(min(max_median_summary$lat), max(max_median_summary$lat)))+
+  xlab("Longitude")+ ylab("Latitude")
+#d
+if(AOI ==TRUE){
+  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_OptPlanting_ONI.png"), width = 12, height = 12)
+  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_OptPlanting_ONI.pdf"), width = 12, height = 12)
+  }else{
+  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_OptPlanting_ONI.png" ), width = 12, height = 12)
+  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_OptPlanting_ONI.pdf" ), width = 12, height = 12)
+  }
+
+ 
   }
 }
 
@@ -402,181 +524,6 @@ ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_",Extent,"
 # get_ONI(country, useCaseName, Crop, Extent, Season, Plot)
 # merge_DSSAT_output(country, useCaseName, Crop, Extent, Season)
   # Meand and SEM plot
-  pd <- position_dodge(0.2)
-  dssat_oni %>%
-						  
-    summarySE(measurevar="HWAH", groupvars=c("Variety","TNAM", "ENSO"))%>%
-  ggplot(aes(x = TNAM, 
-             y = HWAH, 
-             group=ENSO, 
-             color=ENSO)) +
-									 
-    geom_point(position = pd, size = 3) +
-    geom_line(position = pd,linewidth = 1) +
-    geom_errorbar(aes(ymin = HWAH - se, ymax = HWAH + se), width = .1, position= pd)+
-    theme_bw()+
-    scale_color_manual(values=val)+ theme(axis.text.x =element_text(angle=45, hjust=1))+
-    ylab(expression(bold('Yield'~(kg~ha^{-1})))) + xlab(expression(bold("Planting time")))
-  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_",Extent,"_season_",Season,"_ONI_DotPlot_Global.pdf"))
 
-  # Heat map
-  p1 <- dssat_oni %>%
-						  
-    summarySE(measurevar="HWAH", groupvars=c("Variety","TNAM", "ENSO"))%>%
-  ggplot(aes(x=TNAM, y=ENSO, fill=HWAH))+
-									 
-     geom_tile(color="white", linewidth=0.1)+
-     theme_bw()+
-     theme(axis.text.x =element_text(angle=45, hjust=1))+
-     scale_fill_viridis_c(name="Yield"~(kg~ha^{-1}))+
-     coord_equal()+
-    ylab(expression(bold("ENSO")))+xlab(expression(bold("Planting time")))+
-    ggtitle("Mean yield")
-  
- p2 <-  dssat_oni %>%
-						  
-   summarySE(measurevar="HWAH", groupvars=c("Variety","TNAM", "ENSO"))%>%
-    ggplot(aes(x=TNAM, y=ENSO, fill=sd))+
-									 
-    geom_tile(color="white", linewidth=0.1)+
-    theme_bw()+
-    theme(axis.text.x =element_text(angle=45, hjust=1))+
-    scale_fill_viridis_c(name="Yield"~(kg~ha^{-1}))+
-    coord_equal()+
-    ylab(expression(bold("ENSO")))+xlab(expression(bold("Planting time")))+
-    ggtitle("Standard Deviation")
- p1+p2+plot_layout(ncol = 1) 
- ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_",Extent,"_season_",Season,"_ONI_HeatMap_Global.pdf"))
  
- ### 4.5.2. Plot by variety ####
- # Meand and SEM plot
- pd <- position_dodge(0.2)
- dssat_oni %>%
-   summarySE(measurevar="HWAH", groupvars=c("Variety","TNAM", "ENSO"))%>%
-   ggplot(aes(x = TNAM, 
-              y = HWAH, 
-              group=ENSO, 
-              color=ENSO)) +
-   facet_grid(rows = vars(Variety))+
-   geom_point(position = pd, size = 3) +
-   geom_line(position = pd,linewidth = 1) +
-   geom_errorbar(aes(ymin = HWAH - se, ymax = HWAH + se), width = .1, position= pd)+
-   theme_bw()+
-   scale_color_manual(values=val)+ theme(axis.text.x =element_text(angle=45, hjust=1))+
-   ylab(expression(bold('Yield'~(kg~ha^{-1})))) + xlab(expression(bold("Planting time")))
- ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_",Extent,"_season_",Season,"_ONI_DotPlot_Variety.pdf"))
- 
- # Heat map
- p1 <- dssat_oni %>%
-   summarySE(measurevar="HWAH", groupvars=c("Variety","TNAM", "ENSO"))%>%
-   ggplot(aes(x=TNAM, y=ENSO, fill=HWAH))+
-   facet_grid(rows = vars(Variety))+
-   geom_tile(color="white", linewidth=0.1)+
-   theme_bw()+
-   theme(axis.text.x =element_text(angle=45, hjust=1))+
-   scale_fill_viridis_c(name="Yield"~(kg~ha^{-1}))+
-   coord_equal()+
-   ylab(expression(bold("ENSO")))+xlab(expression(bold("Planting time")))+
-   ggtitle("Mean yield")
- 
- p2 <-  dssat_oni %>%
-   summarySE(measurevar="HWAH", groupvars=c("Variety","TNAM", "ENSO"))%>%
-   ggplot(aes(x=TNAM, y=ENSO, fill=sd))+
-   facet_grid(rows = vars(Variety))+
-   geom_tile(color="white", linewidth=0.1)+
-   theme_bw()+
-   theme(axis.text.x =element_text(angle=45, hjust=1))+
-   scale_fill_viridis_c(name="Yield"~(kg~ha^{-1}))+
-   coord_equal()+
-   ylab(expression(bold("ENSO")))+xlab(expression(bold("Planting time")))+
-   ggtitle("Standard Deviation")
- p1+p2+plot_layout(ncol = 2) 
- ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_",Extent,"_season_",Season,"_ONI_HeatMap_Variety.pdf"))
- 
- ## 4.6. Maps ####
- 
- # Read the relevant shape file from gdam to be used to crop the global data
- countryShp <- geodata::gadm(country, level = 1, path=paste0("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", country, "_",useCaseName,"/",Crop,"/result/DSSAT/", sep=""))
- country_sf <- sf::st_as_sf(countryShp)
- 
-															
-  
-								 
-  
- ### 4.6.1. Global Map ####
- dssat_oni.g <- dssat_oni %>%
-   summarySE(measurevar="HWAH", groupvars=c("Lat","Long", "ENSO"))
- 
- # Scale limits
- min.mean <- min(dssat_oni.g$HWAH)
- max.mean <- max(dssat_oni.g$HWAH)
- 
- min.sd <- min(dssat_oni.g$sd)
- max.sd <- max(dssat_oni.g$sd)
- 
- ## Neutral
- dssat.neutral.g <- subset(dssat_oni.g, dssat_oni.g$ENSO %in% 'Neutral', select = -c(ENSO, N))
- dssat.neutral.g <- na.omit(dssat.neutral.g[,c(2,1,3,4,5,6)])
- 
- ## Nino
- dssat.nino.g <- subset(dssat_oni.g, dssat_oni.g$ENSO %in% 'Niño', select = -c(ENSO, N))
- dssat.nino.g <- na.omit(dssat.nino.g[,c(2,1,3,4,5,6)])
- 
- ## Nina
- dssat.nina.g <- subset(dssat_oni.g, dssat_oni.g$ENSO %in% 'Niña', select = -c(ENSO, N))
- dssat.nina.g <- na.omit(dssat.nina.g[,c(2,1,3,4,5,6)])
- 
- ## Assembling
- dssat.g.mean <- dssat.neutral.g
- dssat.g.mean$Wheather <- "B"
- dssat.nino.g$Wheather <- 'A'
- dssat.nina.g$Wheather <- 'C'
- dssat.g.mean <- rbind(dssat.g.mean, dssat.nino.g)
- dssat.g.mean <- rbind(dssat.g.mean, dssat.nina.g)
- 
- mean.g <-oni_map(data=dssat.g.mean, x=Long, y=Lat,shp=country_sf, fill=HWAH, HWAH= TRUE,limits=c(min.mean, max.mean))
- sd.g <-oni_map(data=dssat.g.mean, x=Long, y=Lat,shp=country_sf, fill=sd, HWAH= FALSE, limits=c(min.sd, max.sd))
- 
- ass <- plot_grid(mean.g, sd.g)
- # Final Layout
- title <- ggdraw() + draw_label(
-     "Water limited yield according to main weather patterns:",
-     fontface = 'bold',
-     x = 0,
-     hjust = 0
-   ) +
-   draw_label(
-     paste(country, "-", useCaseName, " use case", "-", Crop),
-     fontface = 'bold',
-     x = 0,
-     y=0.15,
-     hjust = 0
-   )+
-   theme(
-     # add margin on the left of the drawing canvas,
-     # so title is aligned with left edge of first plot
-     plot.margin = margin(0, 0, 0, 7)
-   )
- 
-plot_grid(
-   title, ass,
-   ncol = 1,
-   # rel_heights values control vertical title margins
-   rel_heights = c(0.1, 1)
- )
- 
-ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_",Extent,"_season_",Season,"_ONI_Maps_Global.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
 
-  }
-}
-
-# country="Kenya"
-# useCaseName="KALRO"
-# Crop = "Maize"
-# Extent = "AOI"
-# Season = 1
-# Plot = TRUE
-# 
-# 
-# get_ONI(country, useCaseName, Crop, Extent, Season, Plot)
-# merge_DSSAT_output(country, useCaseName, Crop, Extent, Season)
