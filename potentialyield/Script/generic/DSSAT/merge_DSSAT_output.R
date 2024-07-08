@@ -69,17 +69,22 @@ merge_DSSAT_output <- function(country, useCaseName, Crop, AOI = FALSE, season =
           test <- strsplit(test, "/")[[1]]
           test <- test[test != ""]
           file$zone <- test[1]
+          file$Loc <- file$zone
           file$level2 <- test[2]
         } else if (level2_folder == FALSE & zone_folder == TRUE) {
           file$zone <- mgsub(.x, c(path.to.extdata, "/", "/EXTE.*"), c("", "", ""))
+          file$Loc <- file$zone
           file$level2 <- NA
         } else if (level2_folder == TRUE & zone_folder == FALSE) {
           stop("You need to define first a zone (administrative level 1) to be able to run the model for level 2 (administrative level 2). Process stopped")
         } else {
           file$zone <- NA
           file$level2 <- NA
+          file$Loc <- NA
         }
         file$Variety <- varietyid
+        file$Lat <- file$XLAT
+        file$Long <- file$LONG
         file
       }, error = function(e) {
         cat("Error processing file:", .x, "\n", e$message, "\n")
