@@ -356,7 +356,9 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
     pathIn <- general_pathIn
   }
 
-
+  if (!dir.exists(pathIn)) {
+    stop("You need to provide a path with all the input (weather and soil data) as RDS. Please refer to the documentation. Process stopped")
+  }
   
   if(AOI == TRUE){
     Rainfall <- readRDS(paste(pathIn, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))

@@ -37,28 +37,71 @@ get_median_variable <- function(initial_date, final_date, variable, data) {
   return(data.frame(initial_date = initial_date, final_date = final_date, med_variable = med_variable))
 }
 
-oni_map <- function(data, x,y, fill, HWAH, shp, limits){
+oni_map <- function(data, x,y, fill, HWAH, shp, limits,varieties_grid=FALSE){
   
   # Mean plot
-  if (HWAH == TRUE){
-    ggplot(data = data) +
-      geom_raster(aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
-      facet_grid(rows = vars(Wheather), switch=c('y'), labeller=as_labeller(c(`A`="Niño",`B`="Neutral", `C`="Niña")))+
-      scale_fill_stepsn(n.breaks = 9, colours = viridis::viridis(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
-      theme(legend.position = "right")+ 
-      geom_sf(data=shp, fill=NA, color="white", linewidth=0.5)+
-      coord_sf(expand = FALSE, xlim=c(min(data$Long), max(data$Long)), ylim=c(min(data$Lat), max(data$Lat)))+
-      xlab("Longitude")+ ylab("Latitude") + ggtitle(label="Mean")
-  } else {
-    ggplot(data = data) +
-      geom_raster(aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
-      facet_grid(rows = vars(Wheather), switch=c('y'), labeller=as_labeller(c(`A`="Niño",`B`="Neutral", `C`="Niña")))+
-      scale_fill_stepsn(n.breaks = 9, colours = viridis::magma(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
-      theme(legend.position = "right")+ 
-      geom_sf(data=shp, fill=NA, color="white", linewidth=0.5)+
-      coord_sf(expand = FALSE, xlim=c(min(data$Long), max(data$Long)), ylim=c(min(data$Lat), max(data$Lat)))+
-      xlab("Longitude")+ ylab("Latitude") + ggtitle(label="Standard Deviation")
+  if(varieties_grid ==FALSE){
+    if (HWAH == TRUE){
+      ggplot(data = data) +
+        geom_raster(aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
+        facet_grid(rows = vars(ENSO), switch=c('y'))+
+        scale_fill_stepsn(n.breaks = 9, colours = viridis::viridis(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
+        theme(legend.position = "right")+ 
+        geom_sf(data=shp, fill=NA, color="white", linewidth=0.5)+
+        coord_sf(expand = FALSE, xlim=c(min(data$Long), max(data$Long)), ylim=c(min(data$Lat), max(data$Lat)))+
+        xlab("Longitude")+ ylab("Latitude") + ggtitle(label="Mean")
+    } else {
+      ggplot(data = data) +
+        geom_raster(aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
+        facet_grid(rows = vars(ENSO), switch=c('y'))+
+        scale_fill_stepsn(n.breaks = 9, colours = viridis::magma(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
+        theme(legend.position = "right")+ 
+        geom_sf(data=shp, fill=NA, color="white", linewidth=0.5)+
+        coord_sf(expand = FALSE, xlim=c(min(data$Long), max(data$Long)), ylim=c(min(data$Lat), max(data$Lat)))+
+        xlab("Longitude")+ ylab("Latitude") + ggtitle(label="Standard Deviation")
+    }
+  }else{
+    # Mean plot
+    if (HWAH == TRUE){
+      ggplot(data = data) +
+        geom_raster(aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
+        #facet_grid(cols = vars(Wheather), switch=c('x'), labeller=as_labeller(c(`A`="Niño",`B`="Neutral", `C`="Niña")))+
+        facet_grid(Variety~ENSO)+
+        scale_fill_stepsn(n.breaks = 9, colours = viridis::viridis(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
+        theme(legend.position = "right", aspect.ratio = 1, 
+              axis.text.x =element_text(angle=90, hjust=1, face ="bold"),
+              axis.text.y = element_text(size = 14, face ="bold"),
+              axis.title = element_text(size = 16, face = "bold"),
+              strip.text = element_text(size = 16, face = "bold"),
+              strip.background = element_blank(),
+              legend.text = element_text(size = 12),
+              legend.title = element_text(size = 16, face = "bold"),
+              plot.title = element_text(hjust = 0.5))+ 
+
+        geom_sf(data=shp, fill=NA, color="white", linewidth=0.5)+
+        coord_sf(expand = FALSE, xlim=c(min(data$Long), max(data$Long)), ylim=c(min(data$Lat), max(data$Lat)))+
+        xlab("Longitude")+ ylab("Latitude") + ggtitle(label="Mean") 
+    } else {
+      ggplot(data = data) +
+        geom_raster(aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
+        #facet_grid(cols = vars(Wheather), switch=c('x'), labeller=as_labeller(c(`A`="Niño",`B`="Neutral", `C`="Niña")))+
+        facet_grid(Variety~ENSO)+
+        scale_fill_stepsn(n.breaks = 9, colours = viridis::magma(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
+        theme(legend.position = "right", aspect.ratio = 1, 
+              axis.text.x =element_text(angle=90, hjust=1, face ="bold"),
+              axis.text.y = element_text(size = 14, face ="bold"),
+              axis.title = element_text(size = 16, face = "bold"),
+              strip.text = element_text(size = 16, face = "bold"),
+              strip.background = element_blank(),
+              legend.text = element_text(size = 12),
+              legend.title = element_text(size = 16, face = "bold"),
+              plot.title = element_text(hjust = 0.5))+ 
+        geom_sf(data=shp, fill=NA, color="white", linewidth=0.5)+
+        coord_sf(expand = FALSE, xlim=c(min(data$Long), max(data$Long)), ylim=c(min(data$Lat), max(data$Lat)))+
+        xlab("Longitude")+ ylab("Latitude") + ggtitle(label="Standard Deviation") 
+    }
   }
+  
 }
 
 # 3. Aggregated DSSAT output  -------------------------------------------
@@ -209,7 +252,8 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
       Variety ==medium_variety ~ "Medium",
       Variety ==long_variety ~ "Long"
     ))
-															   
+				
+  dssat_oni$TNAM <- reorder(dssat_oni$TNAM, dssat_oni$TRNO)											   
 											
   # Save the aggregated DSSAT output with ONI information
   if(AOI ==TRUE){
@@ -230,7 +274,7 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
   # Meand and SEM plot
   pd <- position_dodge(0.2)
   dssat_oni %>%
-    summarySE(measurevar="HWAH", groupvars=c("Variety","TNAM", "ENSO"))%>%
+    summarySE(measurevar="HWAH", groupvars=c("TNAM", "ENSO"))%>%
   ggplot(aes(x = TNAM, 
              y = HWAH, 
              group=ENSO, 
@@ -344,6 +388,7 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
 							 
   
  ### 4.6.1. Global Map ####
+ #Organized by ENSO
  dssat_oni.g <- dssat_oni %>%
    summarySE(measurevar="HWAH", groupvars=c("Lat","Long", "ENSO"))
  
@@ -353,29 +398,43 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
  
  min.sd <- min(dssat_oni.g$sd)
  max.sd <- max(dssat_oni.g$sd)
+ dssat_oni.g$ENSO <- factor(dssat_oni.g$ENSO,levels =c("Niño","Neutral","Niña"))
+
+ #Organized by ENSO and cultivars
+ dssat_oni.gc <- dssat_oni %>%
+   summarySE(measurevar="HWAH", groupvars=c("Lat","Long", "ENSO","Variety"))
  
- ## Neutral
- dssat.neutral.g <- subset(dssat_oni.g, dssat_oni.g$ENSO %in% 'Neutral', select = -c(ENSO, N))
-dssat.neutral.g <- na.omit(dssat.neutral.g[,c(2,1,3,4,5,6)])
+ # Scale limits
+ min.meanc <- min(dssat_oni.gc$HWAH)
+ max.meanc <- max(dssat_oni.gc$HWAH)
  
- ## Nino
- dssat.nino.g <- subset(dssat_oni.g, dssat_oni.g$ENSO %in% 'Niño', select = -c(ENSO, N))
- dssat.nino.g <- na.omit(dssat.nino.g[,c(2,1,3,4,5,6)])
+ min.sdc <- min(dssat_oni.gc$sd)
+ max.sdc <- max(dssat_oni.gc$sd)
+ dssat_oni.gc$ENSO <- factor(dssat_oni.gc$ENSO,levels =c("Niño","Neutral","Niña"))
+# Remove this section modifying the order by factor (see previous line)
  
- ## Nina
- dssat.nina.g <- subset(dssat_oni.g, dssat_oni.g$ENSO %in% 'Niña', select = -c(ENSO, N))
- dssat.nina.g <- na.omit(dssat.nina.g[,c(2,1,3,4,5,6)])
+#  ## Neutral
+#  dssat.neutral.g <- subset(dssat_oni.g, dssat_oni.g$ENSO %in% 'Neutral', select = -c(ENSO, N))
+# dssat.neutral.g <- na.omit(dssat.neutral.g[,c(2,1,3,4,5,6)])
+#  
+#  ## Nino
+#  dssat.nino.g <- subset(dssat_oni.g, dssat_oni.g$ENSO %in% 'Niño', select = -c(ENSO, N))
+#  dssat.nino.g <- na.omit(dssat.nino.g[,c(2,1,3,4,5,6)])
+#  
+#  ## Nina
+#  dssat.nina.g <- subset(dssat_oni.g, dssat_oni.g$ENSO %in% 'Niña', select = -c(ENSO, N))
+#  dssat.nina.g <- na.omit(dssat.nina.g[,c(2,1,3,4,5,6)])
+#  
+#  ## Assembling
+#  dssat.g.mean <- dssat.neutral.g
+#  dssat.g.mean$Wheather <- "B"
+#  dssat.nino.g$Wheather <- 'A'
+#  dssat.nina.g$Wheather <- 'C'
+#  dssat.g.mean <- rbind(dssat.g.mean, dssat.nino.g)
+#  dssat.g.mean <- rbind(dssat.g.mean, dssat.nina.g)
  
- ## Assembling
- dssat.g.mean <- dssat.neutral.g
- dssat.g.mean$Wheather <- "B"
- dssat.nino.g$Wheather <- 'A'
- dssat.nina.g$Wheather <- 'C'
- dssat.g.mean <- rbind(dssat.g.mean, dssat.nino.g)
- dssat.g.mean <- rbind(dssat.g.mean, dssat.nina.g)
- 
- mean.g <-oni_map(data=dssat.g.mean, x=Long, y=Lat,shp=country_sf, fill=HWAH, HWAH= TRUE,limits=c(min.mean, max.mean))
- sd.g <-oni_map(data=dssat.g.mean, x=Long, y=Lat,shp=country_sf, fill=sd, HWAH= FALSE, limits=c(min.sd, max.sd))
+ mean.g <-oni_map(data= dssat_oni.g, x=Long, y=Lat,shp=country_sf, fill=HWAH, HWAH= TRUE,limits=c(min.mean, max.mean),varieties_grid=FALSE)
+ sd.g <-oni_map(data= dssat_oni.g, x=Long, y=Lat,shp=country_sf, fill=sd, HWAH= FALSE, limits=c(min.sd, max.sd),varieties_grid=FALSE)
  
  ass <- plot_grid(mean.g, sd.g)
  # Final Layout
@@ -409,6 +468,23 @@ if(AOI==TRUE){
   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_Maps_Global.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
 }else{
   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_Maps_Global.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
+}
+
+#Map including variety and ENSO
+mean.gc <-oni_map(data=dssat_oni.gc, x=Long, y=Lat,shp=country_sf, fill=HWAH, HWAH= TRUE,limits=c(min.meanc, max.meanc),varieties_grid=TRUE)
+mean.gc
+if(AOI==TRUE){
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_Maps_Global_mean.pdf"), dpi=300, width = 8, height=8, units=c("in"))
+}else{
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_Maps_Global_mean.pdf"), dpi=300, width = 8, height=8, units=c("in"))
+}
+
+sd.gc <-oni_map(data=dssat_oni.gc, x=Long, y=Lat,shp=country_sf, fill=sd, HWAH= FALSE, limits=c(min.sdc, max.sdc),varieties_grid=TRUE)
+sd.gc
+if(AOI==TRUE){
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_Maps_Global_sd.pdf"), dpi=300, width = 8, height=8, units=c("in"))
+}else{
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_Maps_Global_sd.pdf"), dpi=300, width = 8, height=8, units=c("in"))
 }
 
 ##################################################
