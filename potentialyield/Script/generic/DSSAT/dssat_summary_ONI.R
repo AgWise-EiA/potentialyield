@@ -45,7 +45,7 @@ oni_map <- function(data, x,y, fill, HWAH, shp, limits,varieties_grid=FALSE){
       ggplot(data = data) +
         geom_raster(aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
         facet_grid(rows = vars(ENSO), switch=c('y'))+
-        scale_fill_stepsn(n.breaks = 9, colours = viridis::viridis(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
+        scale_fill_stepsn(n.breaks = 9, colours = viridis::magma(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
         theme(legend.position = "right")+ 
         geom_sf(data=shp, fill=NA, color="white", linewidth=0.5)+
         coord_sf(expand = FALSE, xlim=c(min(data$Long), max(data$Long)), ylim=c(min(data$Lat), max(data$Lat)))+
@@ -55,6 +55,7 @@ oni_map <- function(data, x,y, fill, HWAH, shp, limits,varieties_grid=FALSE){
         geom_raster(aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
         facet_grid(rows = vars(ENSO), switch=c('y'))+
         scale_fill_stepsn(n.breaks = 9, colours = viridis::magma(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
+        #scale_fill_gradientn(colours = viridis::magma(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
         theme(legend.position = "right")+ 
         geom_sf(data=shp, fill=NA, color="white", linewidth=0.5)+
         coord_sf(expand = FALSE, xlim=c(min(data$Long), max(data$Long)), ylim=c(min(data$Lat), max(data$Lat)))+
@@ -67,16 +68,16 @@ oni_map <- function(data, x,y, fill, HWAH, shp, limits,varieties_grid=FALSE){
         geom_raster(aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
         #facet_grid(cols = vars(Wheather), switch=c('x'), labeller=as_labeller(c(`A`="Niño",`B`="Neutral", `C`="Niña")))+
         facet_grid(Variety~ENSO)+
-        scale_fill_stepsn(n.breaks = 9, colours = viridis::viridis(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
+        scale_fill_gradientn(colours = viridis::viridis(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
         theme(legend.position = "right", aspect.ratio = 1, 
-              axis.text.x =element_text(angle=90, hjust=1, face ="bold"),
+              axis.text.x =element_text(angle=90, hjust=1, face ="bold",size=14),
               axis.text.y = element_text(size = 14, face ="bold"),
               axis.title = element_text(size = 16, face = "bold"),
               strip.text = element_text(size = 16, face = "bold"),
               strip.background = element_blank(),
-              legend.text = element_text(size = 12),
+              legend.text = element_text(size = 14),
               legend.title = element_text(size = 16, face = "bold"),
-              plot.title = element_text(hjust = 0.5))+ 
+              plot.title = element_text(hjust = 0.5, size=16,face ="bold"))+ 
 
         geom_sf(data=shp, fill=NA, color="white", linewidth=0.5)+
         coord_sf(expand = FALSE, xlim=c(min(data$Long), max(data$Long)), ylim=c(min(data$Lat), max(data$Lat)))+
@@ -86,16 +87,16 @@ oni_map <- function(data, x,y, fill, HWAH, shp, limits,varieties_grid=FALSE){
         geom_raster(aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
         #facet_grid(cols = vars(Wheather), switch=c('x'), labeller=as_labeller(c(`A`="Niño",`B`="Neutral", `C`="Niña")))+
         facet_grid(Variety~ENSO)+
-        scale_fill_stepsn(n.breaks = 9, colours = viridis::magma(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
+        scale_fill_gradientn(colours = viridis::magma(9),name=" Yield"~(kg~ha^{-1}), limits = limits)+ theme_bw()+
         theme(legend.position = "right", aspect.ratio = 1, 
-              axis.text.x =element_text(angle=90, hjust=1, face ="bold"),
+              axis.text.x =element_text(angle=90, hjust=1, face ="bold", size =14),
               axis.text.y = element_text(size = 14, face ="bold"),
               axis.title = element_text(size = 16, face = "bold"),
               strip.text = element_text(size = 16, face = "bold"),
               strip.background = element_blank(),
-              legend.text = element_text(size = 12),
+              legend.text = element_text(size = 14),
               legend.title = element_text(size = 16, face = "bold"),
-              plot.title = element_text(hjust = 0.5))+ 
+              plot.title = element_text(hjust = 0.5, size=16,face ="bold"))+ 
         geom_sf(data=shp, fill=NA, color="white", linewidth=0.5)+
         coord_sf(expand = FALSE, xlim=c(min(data$Long), max(data$Long)), ylim=c(min(data$Lat), max(data$Lat)))+
         xlab("Longitude")+ ylab("Latitude") + ggtitle(label="Standard Deviation") 
