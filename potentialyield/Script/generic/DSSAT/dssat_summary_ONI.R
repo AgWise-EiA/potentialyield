@@ -130,7 +130,7 @@ source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/merg
   #' @param useCaseName use case name
   #' @param Crop targeted crop
   #' @param AOI TRUE if the data is required for target area, and FALSE if it is for trial sites, default =TRUE
-  #' @param Season integer, cropping season concerned, default = 1 
+  #' @param season integer, cropping season concerned, default = 1 
   #' @param Plot, provide somes plots of the output, default = TRUE
   #' @param short_variety variety ID with short growing period duration
   #' @param medium_variety variety ID with medium growing period duration 
@@ -138,7 +138,7 @@ source("~/agwise-potentialyield/dataops/potentialyield/Script/generic/DSSAT/merg
   #'
   #' @return A table with the aggregated DSSAT simulation classified based on ONI index - Output table is written out in "~/agwise-potentialyield/dataops/potentialyield/Data/useCaseName/Crop/result/DSSAT/Extent/useCase_country_useCaseName_crop_Extent_season_X_ONI.RDS")
   #'
-  #' @examples get_ONI(country= "Kenya", useCaseName = "KALRO", Crop="Maize", AOI=T, Season=1, Plot=TRUE, short_variety="900111", medium_variety="900112",long_variety="900113")
+  #' @examples get_ONI(country= "Kenya", useCaseName = "KALRO", Crop="Maize", AOI=T, season=1, Plot=TRUE, short_variety="900111", medium_variety="900112",long_variety="900113")
   #' 
 
 get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, short_variety, medium_variety, long_variety){
@@ -258,9 +258,9 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
 											
   # Save the aggregated DSSAT output with ONI information
   if(AOI ==TRUE){
-    saveRDS(dssat_oni,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI.RDS" ))
+    saveRDS(dssat_oni,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_ONI.RDS" ))
   }else{
-    saveRDS(dssat_oni,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI.RDS" ))
+    saveRDS(dssat_oni,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_ONI.RDS" ))
   }
   
   ## 4.5. Basic plots ####
@@ -287,9 +287,9 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
     scale_color_manual(values=val)+ theme(axis.text.x =element_text(angle=45, hjust=1))+
     ylab(expression(bold('Yield'~(kg~ha^{-1})))) + xlab(expression(bold("Planting time")))
   if(AOI==TRUE){
-    ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_DotPlot_Global.pdf"))
+    ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_ONI_DotPlot_Global.pdf"))
   }else{
-    ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_DotPlot_Global.pdf"))
+    ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_ONI_DotPlot_Global.pdf"))
   }
   
 
@@ -318,9 +318,9 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
  p1+p2+plot_layout(ncol = 1) 
  
  if(AOI==TRUE){
-   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_HeatMap_Global.pdf"))
+   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_ONI_HeatMap_Global.pdf"))
  }else{
-   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_HeatMap_Global.pdf"))
+   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_ONI_HeatMap_Global.pdf"))
  }
  
  
@@ -342,9 +342,9 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
    ylab(expression(bold('Yield'~(kg~ha^{-1})))) + xlab(expression(bold("Planting time")))
 
  if(AOI==TRUE){
-   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_DotPlot_Variety.pdf"))
+   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_ONI_DotPlot_Variety.pdf"))
  }else{
-   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_DotPlot_Variety.pdf"))
+   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_ONI_DotPlot_Variety.pdf"))
  }
  
  
@@ -375,9 +375,9 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
  p1+p2+plot_layout(ncol = 2) 
  
  if(AOI==TRUE){
-   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_HeatMap_Variety.pdf"))
+   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_ONI_HeatMap_Variety.pdf"))
  }else{
-   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_HeatMap_Variety.pdf"))
+   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_ONI_HeatMap_Variety.pdf"))
  }
  
  ## 4.6. Maps ####
@@ -466,26 +466,26 @@ plot_grid(
  )
 
 if(AOI==TRUE){
-  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_Maps_Global.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_ONI_Maps_Global.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
 }else{
-  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_Maps_Global.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_ONI_Maps_Global.pdf"), dpi=300, width = 8, height=6.89, units=c("in"))
 }
 
 #Map including variety and ENSO
 mean.gc <-oni_map(data=dssat_oni.gc, x=Long, y=Lat,shp=country_sf, fill=HWAH, HWAH= TRUE,limits=c(min.meanc, max.meanc),varieties_grid=TRUE)
 mean.gc
 if(AOI==TRUE){
-  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_Maps_Global_mean.pdf"), dpi=300, width = 8, height=8, units=c("in"))
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_ONI_Maps_Global_mean.pdf"), dpi=300, width = 8, height=8, units=c("in"))
 }else{
-  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_Maps_Global_mean.pdf"), dpi=300, width = 8, height=8, units=c("in"))
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_ONI_Maps_Global_mean.pdf"), dpi=300, width = 8, height=8, units=c("in"))
 }
 
 sd.gc <-oni_map(data=dssat_oni.gc, x=Long, y=Lat,shp=country_sf, fill=sd, HWAH= FALSE, limits=c(min.sdc, max.sdc),varieties_grid=TRUE)
 sd.gc
 if(AOI==TRUE){
-  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_ONI_Maps_Global_sd.pdf"), dpi=300, width = 8, height=8, units=c("in"))
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_ONI_Maps_Global_sd.pdf"), dpi=300, width = 8, height=8, units=c("in"))
 }else{
-  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_ONI_Maps_Global_sd.pdf"), dpi=300, width = 8, height=8, units=c("in"))
+  ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_ONI_Maps_Global_sd.pdf"), dpi=300, width = 8, height=8, units=c("in"))
 }
 
 ##################################################
@@ -529,9 +529,9 @@ max_median_summary_poptions <- summary_pyd %>%
 
 # Save the top optimum 5 planting dates per ENSO per variety per location
 if(AOI ==TRUE){
-  saveRDS(max_median_summary_poptions,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_optimum_planting5.RDS" ))
+  saveRDS(max_median_summary_poptions,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_optimum_planting5.RDS" ))
 }else{
-  saveRDS(max_median_summary_poptions,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_optimum_planting5.RDS" ))
+  saveRDS(max_median_summary_poptions,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_optimum_planting5.RDS" ))
 }
 #get only one optimum date
 max_median_summary <- summary_pyd %>%  
@@ -543,9 +543,9 @@ max_median_summary <- summary_pyd %>%
 
 # Save the top optimum planting date per ENSO per variety per location
 if(AOI ==TRUE){
-  saveRDS(max_median_summary,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_optimum_planting.RDS" ))
+  saveRDS(max_median_summary,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_optimum_planting.RDS" ))
 }else{
-  saveRDS(max_median_summary,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_optimum_planting.RDS" ))
+  saveRDS(max_median_summary,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_optimum_planting.RDS" ))
 }
 
 year <- 2023
@@ -579,11 +579,11 @@ d<-max_median_summary %>%
   xlab("Longitude")+ ylab("Latitude")
 #d
 if(AOI ==TRUE){
-  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_OptPlanting_ONI.png"), width = 12, height = 12)
-  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",Season,"_OptPlanting_ONI.pdf"), width = 12, height = 12)
+  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_OptPlanting_ONI.png"), width = 12, height = 12)
+  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_OptPlanting_ONI.pdf"), width = 12, height = 12)
   }else{
-  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_OptPlanting_ONI.png" ), width = 12, height = 12)
-  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",Season,"_OptPlanting_ONI.pdf" ), width = 12, height = 12)
+  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_OptPlanting_ONI.png" ), width = 12, height = 12)
+  ggsave(plot=d,paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_OptPlanting_ONI.pdf" ), width = 12, height = 12)
   }
 
  
@@ -594,12 +594,12 @@ if(AOI ==TRUE){
 # useCaseName="KALRO"
 # Crop = "Maize"
 # Extent = "AOI"
-# Season = 1
+# season = 1
 # Plot = TRUE
 # 
 # 
-# get_ONI(country, useCaseName, Crop, Extent, Season, Plot)
-# merge_DSSAT_output(country, useCaseName, Crop, Extent, Season)
+# get_ONI(country, useCaseName, Crop, Extent, season, Plot)
+# merge_DSSAT_output(country, useCaseName, Crop, Extent, season)
   # Meand and SEM plot
 
  
