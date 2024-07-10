@@ -56,8 +56,9 @@ merge_DSSAT_output <- function(country, useCaseName, Crop, AOI = FALSE, season =
     setwd(path.to.extdata)
     
     a <- list.files(path = path.to.extdata, pattern = "^EXTE.*\\.OUT$", include.dirs = TRUE, full.names = TRUE, recursive = TRUE)
+    b <- list.files(path = path.to.extdata, pattern = "^WHTE.*\\.WTH$", include.dirs = TRUE, full.names = TRUE, recursive = TRUE)
     
-    results <- future_map_dfr(a, function(.x) {
+    results <- future_map2_dfr(a,b, function(.x,.y) {
       tryCatch({
         file <- read_output(.x)
         file <- file[, c("XLAT", "LONG", "TRNO", "TNAM", "PDAT", "HDAT", "CWAM", "HWAH", "CNAM", "GNAM", "NDCH", "TMAXA", "TMINA", "SRADA", "PRCP", "ETCP", "ESCP", "CRST")]
@@ -83,8 +84,9 @@ merge_DSSAT_output <- function(country, useCaseName, Crop, AOI = FALSE, season =
           file$Loc <- NA
         }
         file$Variety <- varietyid
-        file$Lat <- file$XLAT
-        file$Long <- file$LONG
+        wht_file <- read_filea(.y)
+        file$Lat <- unique(wht_file$LAT)
+        file$Long <- unique(wht_file$LONG)
         file
       }, error = function(e) {
         cat("Error processing file:", .x, "\n", e$message, "\n")
