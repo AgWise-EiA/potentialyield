@@ -391,7 +391,7 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
  ### 4.6.1. Global Map ####
  #Organized by ENSO
  dssat_oni.g <- dssat_oni %>%
-   summarySE(measurevar="HWAH", groupvars=c("Lat","Long", "ENSO"))
+   Rmisc::summarySE(measurevar="HWAH", groupvars=c("Lat","Long", "ENSO"))
  
  # Scale limits
  min.mean <- min(dssat_oni.g$HWAH)
@@ -403,7 +403,7 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
 
  #Organized by ENSO and cultivars
  dssat_oni.gc <- dssat_oni %>%
-   summarySE(measurevar="HWAH", groupvars=c("Lat","Long", "ENSO","Variety"))
+   Rmisc::summarySE(measurevar="HWAH", groupvars=c("Lat","Long", "ENSO","Variety"))
  
  # Scale limits
  min.meanc <- min(dssat_oni.gc$HWAH)
