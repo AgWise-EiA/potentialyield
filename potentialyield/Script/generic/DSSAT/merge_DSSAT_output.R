@@ -36,7 +36,8 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 merge_DSSAT_output <- function(country, useCaseName, Crop, AOI = FALSE, season = NULL, varietyids, zone_folder = TRUE, level2_folder = FALSE) {
   
   # Set up parallel processing
-  plan(multisession, workers = 10)
+  num_cores <- availableCores() -3
+  plan(multisession, workers = num_cores)
   all_results <- NULL
   
   for (varietyid in varietyids) {

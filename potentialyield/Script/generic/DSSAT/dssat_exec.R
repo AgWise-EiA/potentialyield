@@ -114,7 +114,8 @@ rundssat <-function(i,path.to.extdata,TRT,AOI=TRUE,crop_code){
     file.remove(log_file)
   }
 
-  plan(multisession, workers = 11)
+  num_cores <- availableCores() -3
+  plan(multisession, workers = num_cores)
   results <- future_lapply(indices, function(i) {
     message <- paste("Progress:", i, "out of", length(indices))
     cat(message, "\n", file = log_file, append = TRUE)
