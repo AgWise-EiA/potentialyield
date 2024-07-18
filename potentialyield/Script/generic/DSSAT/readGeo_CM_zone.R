@@ -524,7 +524,8 @@ readGeo_CM_zone <- function(country, useCaseName, Crop, AOI = FALSE, season=1, z
   
   
   # Set up parallel processing (for more efficient processing)
-  plan(multisession, workers = 11)
+  num_cores <- availableCores() -3
+  plan(multisession, workers = num_cores)
   
   results <- future_lapply(indices, function(i) {
     message <- paste("Progress experiment:", i, "out of", length(indices),"for variety", varietyid)
