@@ -62,7 +62,7 @@ merge_DSSAT_output <- function(country, useCaseName, Crop, AOI = FALSE, season =
     results <- future_map2_dfr(a,b, function(.x,.y) {
       tryCatch({
         file <- read_output(.x)
-        file <- file[, c("XLAT", "LONG", "TRNO", "TNAM", "PDAT", "HDAT", "CWAM", "HWAH", "CNAM", "GNAM", "NDCH", "TMAXA", "TMINA", "SRADA", "PRCP", "ETCP", "ESCP", "CRST")]
+        file <- file[, c("XLAT", "LONG", "TRNO", "TNAM", "PDAT","ADAT","MDAT", "HDAT", "CWAM", "HWAH", "CNAM", "GNAM", "NDCH", "TMAXA", "TMINA", "SRADA", "PRCP", "ETCP", "ESCP", "CRST")]
         file$file_name <- .x
         file$WUE <- file$HWAH/file$PRCP
           

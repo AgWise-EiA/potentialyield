@@ -28,15 +28,6 @@ registerDoParallel(num_cores)
 
 # 2. Defining required functions -------------------------------------------
 
-get_median_variable <- function(initial_date, final_date, variable, data) {
-  filtered_data <- data %>%
-    filter(date >= as.Date(initial_date) & date <= as.Date(final_date))
-  
-  med_variable <- median(filtered_data[[variable]], na.rm = TRUE)
-  
-  return(data.frame(initial_date = initial_date, final_date = final_date, med_variable = med_variable))
-}
-
 oni_map <- function(data, x,y, fill, HWAH, shp, limits,varieties_grid=FALSE){
   
   # Mean plot
@@ -192,6 +183,60 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
   )
   oni$month <- month_mapping[oni$SEAS]
   oni$date <- as.Date(paste0(oni$YR, "-", oni$month, "-01"), format="%Y-%B-%d")
+  oni$year <-year(oni$date)
+  oni$num_month <-month(oni$date)
+  
+  
+  oni <- oni %>% arrange(year, num_month)
+  
+  # Create a function to determine the category
+  get_oni_category <- function(anom_values) {
+    anom_values <- round(anom_values,1)
+    n <- length(anom_values)
+    categories <- rep("neutral", n)
+    
+    i <- 1
+    while (i <= n) {
+      if (anom_values[i] <= -0.5) {
+        count <- 0
+        j <- i
+        while (j <= n && anom_values[j] <= -0.5) {
+          count <- count + 1
+          j <- j + 1
+        }
+        if (count >= 5) {
+          categories[i:(i+count-1)] <- "nina"
+          i <- i + count
+        } else {
+          i <- i + 1
+        }
+      } else if (anom_values[i] >= 0.5) {
+        count <- 0
+        j <- i
+        while (j <= n && anom_values[j] >= 0.5) {
+          count <- count + 1
+          j <- j + 1
+        }
+        if (count >= 5) {
+          categories[i:(i+count-1)] <- "nino"
+          i <- i + count
+        } else {
+          i <- i + 1
+        }
+      } else {
+        i <- i + 1
+      }
+    }
+    return(categories)
+  }
+  
+  # Apply the function to the oni data frame
+  oni <- oni %>%
+    mutate(oni_category = get_oni_category(ANOM))
+  
+  # Print the data frame to check the result
+  path_to_save = "/home/jovyan/agwise-datasourcing/dataops/datasourcing/Data/Global_GeoData/Landing/ONI/"
+  write.table(oni, paste0(path_to_save,"oni_categorical.txt"), row.names = FALSE)
   
   ### 4.2.2. Get the aggregated DSSAT output and reshape the data ####
   # Open the aggregated DSSAT output
@@ -205,45 +250,63 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE, sho
   #ifelse(file.exists(dssat_path)==FALSE, dssat <- all_results, dssat <- readRDS(dssat_path))
   dssat <- readRDS(dssat_path)
 
-  ## 4.3. Get the median ONI over the cropping season for aggregated DSSAT output ####
+  ## 4.3. Get the mode ONI over the cropping season for aggregated DSSAT output ####
   # Ranges of date of analysis
-  date_ranges <- data.frame (
-    initial_date = dssat$PDAT, # Planting Date
-    final_date = dssat$HDAT    # Harvesting Date
-  )
+  if(Crop %in% c('Cassava','Potato')) {
+    date_ranges <- data.frame (
+      initial_date = dssat$PDAT, # Planting Date
+      final_date = dssat$HDAT    # Harvesting Date
+    )
+  }else{
+    date_ranges <- data.frame (
+      initial_date = dssat$PDAT, # Planting Date
+      final_date = dssat$MDAT    # Harvesting Date
+    )
+  }
+
 																	 
   date_ranges <- unique(date_ranges)
 
-  # Compute the median ONI over the cropping season #(takes alot of time)
- # med_oni <- pmap_dfr(date_ranges, get_median_variable, variable="ANOM", data=oni)
-
- # # Update the aggregated DSSAT output
- # dssat_oni <- bind_cols(dssat,med_oni)
+  # Compute the mode from caterogical ONI over the cropping season 
  
+  calculate_mode <- function(x) {
+    unique_x <- unique(x)
+    tab <- tabulate(match(x, unique_x))
+    mode_value <- unique_x[which.max(tab)]
+    return(mode_value)
+  }
   
   medoni <- foreach::foreach(i=1:nrow(date_ranges)) %dopar% {
     filtered_data <- oni %>%
-      filter(date >= as.Date(date_ranges$initial_date[i]) & date <= as.Date(date_ranges$final_date[i]))
-    vars <- as.numeric(filtered_data$ANOM)
+      filter(date >= as.Date(date_ranges$initial_date[i]) & date<= as.Date(date_ranges$final_date[i]))
+    vars <- filtered_data$oni_category
     if(i%%10000==0){
       print(i)}
-    median(vars)}
+    calculate_mode(vars)}
   medoni <- do.call(rbind, medoni)
 
+
   # Convert medoni to a dataframe with a specific column name
-  medoni_df <- tibble(med_variable = medoni)
+  medoni_df <- tibble(mode_variable = medoni)
   
   date_ranges_oni <- bind_cols(date_ranges,medoni_df)
   
   # Merge with DSSAT output
-  dssat_oni <- merge(dssat, date_ranges_oni, by.x = c('PDAT', 'HDAT'), by.y = c('initial_date', 'final_date'))
+  if(Crop %in% c('Cassava','Potato')){
+    dssat_oni <- merge(dssat, date_ranges_oni, by.x = c('PDAT', 'HDAT'), by.y = c('initial_date', 'final_date'))
+  }else{
+    dssat_oni <- merge(dssat, date_ranges_oni, by.x = c('PDAT', 'MDAT'), by.y = c('initial_date', 'final_date'))
+  }
+  
   #colnames(dssat_oni) <- c(colnames(dssat_oni)[-27],'med_variable')
   
-  ## 4.4. Classify tbe ONI into three classes ####
+  ## 4.4. Classify tbe ONI into three classes (now using the categorical classification directly) ####
   # med ONI > 0.5, Nino, med ONI < -0.5 Nina, -0.5 > ONI > 0.5 Neutral 
-
-  dssat_oni$ENSO <- ifelse(dssat_oni$med_variable > 0.5,"Niño",
-                             ifelse(dssat_oni$med_variable< -0.5,"Niña", "Neutral"))
+# 
+#   dssat_oni$ENSO <- ifelse(dssat_oni$med_variable > 0.5,"Niño",
+#                              ifelse(dssat_oni$med_variable< -0.5,"Niña", "Neutral"))
+  
+  dssat_oni$ENSO  <- dssat_oni$mode_variable
   
   #Change the name of the varieties by their growing duration
   # Apply conditional transformation using case_when
