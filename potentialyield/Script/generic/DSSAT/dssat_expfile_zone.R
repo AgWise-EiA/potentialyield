@@ -236,6 +236,12 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
     Planting_month_date <- Planting_month_date %m-% months(1)
     
     ## if multiple planting dates are to be tested, adjust the Harvest_month_date to extract weather data for the later planting dates.  
+         if(Crop == "Cassava"){
+      duration <- as.Date(paste0(hy, "-",Harvest_month_date))-Planting_month_date
+      if (duration < 240){
+        hy <- hy+1
+      }
+    }
     Harvest_month_date <- as.Date(paste0(hy, "-",Harvest_month_date)) ## the year is only a place holder to set planting month 1 month earlier
     countryCoord$harvestDate <- Harvest_month_date
     if(plantingWindow > 1 & plantingWindow <= 5){
@@ -318,8 +324,11 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
                                  names_sep = "_",
                                  values_to = "RAIN"
                                 )
-    number_years <- max(lubridate::year(as.Date(Rainfall$Date, "%Y-%m-%d")))- min(lubridate::year(as.Date(Rainfall$Date, "%Y-%m-%d")))
-    
+    if(Crop == "Cassava"){
+      number_years <- max(lubridate::year(as.Date(Rainfall$Date, "%Y-%m-%d")))- min(lubridate::year(as.Date(Rainfall$Date, "%Y-%m-%d")))-1
+    }else{
+      number_years <- max(lubridate::year(as.Date(Rainfall$Date, "%Y-%m-%d")))- min(lubridate::year(as.Date(Rainfall$Date, "%Y-%m-%d")))
+    }
   }else{
     number_years <- 1
   }
