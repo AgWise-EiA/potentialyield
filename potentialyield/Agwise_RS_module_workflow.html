@@ -11,7 +11,7 @@
 
 <meta name="author" content="Payel Gosh, Louise Leroux, Amit Srivastava, Meklit Chernet" />
 
-<meta name="date" content="2024-06-14" />
+<meta name="date" content="2024-08-19" />
 
 <title>AgWise Remote Sensing Module</title>
 
@@ -353,7 +353,7 @@ display: none;
 <h1 class="title toc-ignore">AgWise Remote Sensing Module</h1>
 <h4 class="author">Payel Gosh, Louise Leroux, Amit Srivastava, Meklit
 Chernet</h4>
-<h4 class="date">2024-06-14</h4>
+<h4 class="date">2024-08-19</h4>
 
 </div>
 
@@ -474,7 +474,7 @@ agwise-datasourcing folder , e.g.,
 </ul>
 <p><br></p>
 <ul>
-<li>for downloading Crop mask through GEE refer tp
+<li>for downloading Crop mask through GEE refer to
 <strong>get_ESACropland_fromGEE.html</strong> in
 <strong>~/agwise-datasourcing/dataops/datasourcing/Scripts/generic/</strong></li>
 </ul>
@@ -491,8 +491,9 @@ e.g.,
 in agwise-potentialyield folder, e.g.,
 <strong>~/agwise-potentialyield/dataops/potentialyield/Script/generic/RemoteSensing/get_RS_Croptype.R</strong>.
 NOTA this step is optional, in case there is no ground data or not
-enough ground data to calibrate the model, the following step (phenology
-extraction) can be run on the crop mask only.</li>
+enough ground data to calibrate the crop type probability model, the
+following step (phenology extraction) can be run on the crop mask only
+(from GEE).</li>
 </ul>
 <p><br></p>
 <ul>
@@ -513,18 +514,18 @@ below:</p>
 <h3><span style="color:blue;"> <strong>3. Steps to download and
 preprocess satellite data (eg:useCase_Rwanda_RAB)</strong></h3>
 <p>3.1. For input preparation part create a folder under
-<em>agwise-datasourcing/dataops/datasourcing/Scripts/useCases</em> …. In
+<em>agwise-datasourcing/dataops/datasourcing/Script/useCases</em> …. In
 this folder you will have the scripts to execute remote sensing
 functions for the initial processing of your use case - for example,
 <strong>~/agwise-datasourcing/dataops/datasourcing/Scripts/useCases/useCase_Rwanda_RAB/</strong>
 (use the relevant useCase country usecaseName )</p>
 <p><br></p>
-<p>3.2. Download the crop mask from GEE and place it in the
+<p>3.2. Download the crop mask from GEE and place it in a
 <strong>CropMask</strong> folder of useCase, under the folder
-<em>useCase_Country_UseCaseName_Boundary</em> for example,
+<em>MODISdata/raw/</em> for example,
 <strong>~/agwise-datasourcing/dataops/datasourcing/Data/useCase_Rwanda_RAB/MODISdata/raw/CropMask/Cropmask_Rwn250m.tif</strong></p>
 <p><br></p>
-<p>3.3. Copy the script</p>
+<p>3.3. Copy the scripts</p>
 <ul>
 <li><p><strong>get_MODISdata_useCase_Rwanda_RAB.R</strong> - this script
 sources -<strong>get_MODISdata.R</strong>which downloads the MODIS NDVI
@@ -532,7 +533,7 @@ Satellite data.</p></li>
 <li><p><strong>get_MODISts_PreProc_useCase_Rwanda_RAB.R</strong> - this
 script sources -<strong>get_MODISts_PreProc.R</strong> which smoothens
 the data to fill any gaps from
-<strong>agwise-datasourcing/dataops/datasourcing/Scripts/useCases/useCase_Rwanda_RAB/</strong>
+<strong>agwise-datasourcing/dataops/datasourcing/Script/useCases/useCase_Rwanda_RAB/</strong>
 to the folder you just created at step 3.1.</p></li>
 </ul>
 <p><br></p>
@@ -548,21 +549,37 @@ different arguments please refer to the documentation in
 <div id="steps-to-extract-crop-type-probability-egusecase_rwanda_rab" class="section level3">
 <h3><span style="color:blue;"> <strong>4. Steps to extract crop type
 probability (eg:useCase_Rwanda_RAB)</strong></h3>
-<p><br> 4.1. Copy the script -
+<p><br></p>
+<p>4.1. For the crop type probability part create a folder under
+<em>agwise-potentialyield/dataops/potentialyield/Script/useCases</em> ….
+In this folder you will have the scripts to execute remote sensing
+functions for the crop type mapping part of your use case - for example,
+<strong>~/agwise-datasourcing/dataops/datasourcing/Script/useCases/useCase_Rwanda_RAB/</strong>
+(use the relevant useCase country usecaseName )</p>
+<p><br></p>
+<p>4.2. Copy the script -
 <strong>get_RS_Croptpye_useCase_Rwanda_RAB.R</strong> - this script
 sources -<strong>get_RS_Croptype.R</strong> which allows to obtain a
 binary crop type probability maps from the MODIS NDVI Satellite data,
 from
 <strong>~/agwise-potentialyield/dataops/potentialyield/Script/useCases/useCase_Rwanda_RAB/</strong>
-to the folder you just created at step 3.1.</p>
+to the folder you just created at step 4.1.</p>
 <p><br></p>
-<p>4.2. Fill in the correct arguments in the script you copied, i.e.,
+<p>4.3. Fill in the correct arguments in the script you copied, i.e.,
 <strong>get_RS_Croptype_useCase_Rwanda_RAB.R</strong> in your newly
 created folder: - change the country, use case name, planting
 year,planting month, harvest year,harvest month etc. For deeper
 understanding of the different arguments please refer to the
 documentation in <em>get_RS_Croptype.R</em>.</p>
 <p><br></p>
+<p><strong>IMPORTANT</strong> : The ground data containing the GPS
+location of the crop type data must follow specific format : (1)- Should
+be a .RDS file, (2) Should contain at least 5 columns : ‘lon’ (longitude
+data), ‘lat’ (latitude data), ‘planting_date’ (planting date data in the
+<strong>Dates format</strong> YYYY-mm-dd), ‘harvest_date’ (harvest date
+data in the <strong>Dates format</strong> YYYY-mm-dd), and ‘crop’ (the
+type of crop). An example is provide in
+<strong>~/agwise-potentialyield/dataops/potentialyield/Script/useCases/useCase_Rwanda_RAB/Maize/raw/data4RS.RDS</strong>.</p>
 </div>
 <div id="steps-to-extract-phenological-characteristics-egusecase_rwanda_rab" class="section level3">
 <h3><span style="color:blue;"> <strong>5. Steps to extract phenological
@@ -587,6 +604,14 @@ year,planting month, harvest year,harvest month etc. For deeper
 understanding of the different arguments please refer to the
 documentation in <em>get_RS_Phenology.R</em>.</p>
 <p><br></p>
+<p><strong>IMPORTANT</strong> : The ground data containing the GPS
+location of the planting dates data must follow specific format : (1)-
+Should be a .RDS file, (2) Should contain at least 5 columns : ‘lon’
+(longitude data), ‘lat’ (latitude data), ‘planting_date’ (planting date
+data in the <strong>Dates format</strong> YYYY-mm-dd), ‘harvest_date’
+(harvest date data in the <strong>Dates format</strong> YYYY-mm-dd), and
+‘crop’ (the type of crop). An example is provide in
+<strong>~/agwise-potentialyield/dataops/potentialyield/Script/useCases/useCase_Rwanda_RAB/Maize/raw/data4RS.RDS</strong>.</p>
 <div id="section-2" class="section level79">
 <p class="heading"></p>
 </div>
