@@ -483,7 +483,7 @@ Phenology_rasterTS<-function(country, useCaseName, crop, level, admin_unit_name,
     ## Remove the outliers the Estimated Planting/Harvesting Date for my.sf.point
     
     # Planting #
-    quartilep <- quantile(my.sf.point$planting_RS$min, probs=c(.25, .75), na.rm = FALSE)
+    quartilep <- quantile(my.sf.point$planting_RS$min, probs=c(.25, .75), na.rm = TRUE)
     IQRp <- IQR(my.sf.point$planting_RS$min)
     
     Lowerp <- quartilep[1] - 1.5*IQRp
@@ -492,7 +492,7 @@ Phenology_rasterTS<-function(country, useCaseName, crop, level, admin_unit_name,
     my.sf.point <- subset(my.sf.point, my.sf.point$planting_RS$min > Lowerp & my.sf.point$planting_RS$min < Upperp)
     
     # Harvest #
-    quartileh <- quantile(my.sf.point$harvest_RS$min, probs=c(.25, .75), na.rm = FALSE)
+    quartileh <- quantile(my.sf.point$harvest_RS$min, probs=c(.25, .75), na.rm = TRUE)
     IQRh <- IQR(my.sf.point$harvest_RS$min)
     
     Lowerh <- quartileh[1] - 1.5*IQRh
