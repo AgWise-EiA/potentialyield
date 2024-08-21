@@ -127,7 +127,7 @@ Phenology_rasterTS<-function(country, useCaseName, crop, level, admin_unit_name,
   }
   
   # End of the season
-  end <- paste0(nday,Harvesting_month,"-", Planting_year)
+  end <- paste0(nday,Harvesting_month,"-", Harvesting_year)
   end <- as.Date(as.character(end), format ="%d-%B-%Y")
   endj <- as.POSIXlt(end)$yday # conversion in julian day
   
