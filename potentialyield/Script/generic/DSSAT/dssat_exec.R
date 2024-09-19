@@ -127,5 +127,9 @@ rundssat <-function(i,path.to.extdata,TRT,AOI=TRUE,crop_code){
     
     return(result)
   })
+  plan(sequential)
+  rm(list = ls())
+  gc()
+  closeAllConnections()
   
 }
