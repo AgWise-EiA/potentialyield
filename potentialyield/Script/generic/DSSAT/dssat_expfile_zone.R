@@ -386,5 +386,8 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
 
     })
   plan(sequential)
+  rm(list = ls())
+  gc()
+  closeAllConnections()
 }
 
