@@ -127,7 +127,7 @@ Phenology_rasterTS<-function(country, useCaseName, crop, level, admin_unit_name,
   }
   
   # End of the season
-  end <- paste0(nday,Harvesting_month,"-", Planting_year)
+  end <- paste0(nday,Harvesting_month,"-", Harvesting_year)
   end <- as.Date(as.character(end), format ="%d-%B-%Y")
   endj <- as.POSIXlt(end)$yday # conversion in julian day
   
@@ -483,8 +483,8 @@ Phenology_rasterTS<-function(country, useCaseName, crop, level, admin_unit_name,
     ## Remove the outliers the Estimated Planting/Harvesting Date for my.sf.point
     
     # Planting #
-    quartilep <- quantile(my.sf.point$planting_RS$min, probs=c(.25, .75), na.rm = FALSE)
-    IQRp <- IQR(my.sf.point$planting_RS$min)
+    quartilep <- quantile(my.sf.point$planting_RS$min, probs=c(.25, .75), na.rm = TRUE)
+    IQRp <- IQR(my.sf.point$planting_RS$min, na.rm=TRUE)
     
     Lowerp <- quartilep[1] - 1.5*IQRp
     Upperp <- quartilep[2] + 1.5*IQRp 
@@ -492,8 +492,8 @@ Phenology_rasterTS<-function(country, useCaseName, crop, level, admin_unit_name,
     my.sf.point <- subset(my.sf.point, my.sf.point$planting_RS$min > Lowerp & my.sf.point$planting_RS$min < Upperp)
     
     # Harvest #
-    quartileh <- quantile(my.sf.point$harvest_RS$min, probs=c(.25, .75), na.rm = FALSE)
-    IQRh <- IQR(my.sf.point$harvest_RS$min)
+    quartileh <- quantile(my.sf.point$harvest_RS$min, probs=c(.25, .75), na.rm = TRUE)
+    IQRh <- IQR(my.sf.point$harvest_RS$min, na.rm=TRUE)
     
     Lowerh <- quartileh[1] - 1.5*IQRh
     Upperh <- quartileh[2] + 1.5*IQRh 
