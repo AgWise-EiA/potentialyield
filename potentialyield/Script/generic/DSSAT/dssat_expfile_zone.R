@@ -374,17 +374,17 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   num_cores <- availableCores() -3
   plan(multisession, workers = num_cores)
   results <- future_lapply(indices, function(i) {
-    message <- paste("Progress experiment:", i, "out of", length(indices))
+    message <- paste("Progress experiment:", i, "out of", length(indices),"zone:",zone)
     cat(message, "\n", file = log_file, append = TRUE)
 
     create_filex(i, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
                  coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
                  zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat)
     
-    message2 <- paste("Finished:", i, "out of", length(indices))
+    message2 <- paste("Finished:", i, "out of", length(indices),"zone:",zone)
     cat(message2, "\n", file = log_file, append = TRUE)
-    
-    return(results)
+
     })
+  plan(sequential)
 }
 
