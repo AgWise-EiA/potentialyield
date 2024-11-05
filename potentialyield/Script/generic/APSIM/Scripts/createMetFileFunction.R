@@ -1,3 +1,4 @@
+
 #' Title
 #' depends on foreach package
 #' @param rain 
@@ -6,10 +7,20 @@
 #' @param solar 
 #' @param stn 
 #' @param filename 
+#'
 #' @return
 #' @export
+#'
 #' @examples
 createMetFile<-function(rain,max, min,solar,stn,filename = NULL){
+  
+  # my_packages <- c("spdep", "rgdal", "maptools", "raster", "plyr", "ggplot2", "rgdal",
+  #                  "dplyr", "cowplot","readxl", "apsimx", "gtools", "foreach","doParallel",
+  #                  "ranger")
+  # list.of.packages <- my_packages
+  # new.packages <- list.of.packages[!(my_packages %in% installed.packages()[,"Package"])]
+  # if(length(new.packages)) install.packages(new.packages)
+  # lapply(my_packages, require, character.only = TRUE)
   
   if(missing(filename)) filename <- "noname.met"
   
@@ -19,7 +30,8 @@ createMetFile<-function(rain,max, min,solar,stn,filename = NULL){
                                                         rain = rain[i] ,
                                                         max = max[i],
                                                         min = min[i],
-                                                        solar = solar[i])}
+                                                        solar = solar[i],
+                                                      row.names = NULL)}
   
   foreach (i = 1: length(pwr))%do%{
     names(pwr[[i]])<- c('Date', 'rain', 'maxt', 'mint', 'radn')}
@@ -50,6 +62,7 @@ createMetFile<-function(rain,max, min,solar,stn,filename = NULL){
   }
   
   if(filename != "noname.met"){
+    #write_apsim_met(pwr2, wrt.dir = wrt.dir, filename = filename)
   }
   return(invisible(pwr2))
 }

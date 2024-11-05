@@ -4,14 +4,25 @@
 #b = the country shapefile e.g "ZM" for Zimbabwe
 #wkdir = the directory where station data is saved
 #' Title
+#'
 #' @param stn 
 #' @param results 
 #' @param b 
 #' @param wkdir 
+#'
 #' @return
 #' @export
+#'
 #' @examples
 apsim.plots<- function(stn, results, b, wkdir){
+  # my_packages <- c("spdep", "rgdal", "maptools", "raster", "plyr", "ggplot2", "rgdal",
+  #                  "dplyr", "cowplot","readxl", "apsimx", "gtools", "foreach","doParallel",
+  #                  "ranger")
+  # list.of.packages <- my_packages
+  # new.packages <- list.of.packages[!(my_packages %in% installed.packages()[,"Package"])]
+  # if(length(new.packages)) install.packages(new.packages)
+  # lapply(my_packages, require, character.only = TRUE)
+  
   cores<- detectCores()
   myCluster <- makeCluster(cores -2, # number of cores to use
                            type = "PSOCK") # type of cluster
@@ -44,11 +55,9 @@ apsim.plots<- function(stn, results, b, wkdir){
   glimpse(final)
   
   final <- mutate(final, lonlat= paste0(Longitude, "_", Latitude))
-  stns<- read.csv("D:/AgWise_APSIM/stn.csv")
+  #stns<- read.csv(paste0(wkdir,"stn.csv"))
   
-  final<-inner_join(final, stns, by= "lonlat")%>% 
-    dplyr::select (-c(X, Longitude.y, Latitude.y))%>%
-    rename(Longitude = Longitude.x , Latitude = Latitude.x)
+  final<-inner_join(final, stn)
   p_Win <- final  %>% 
     group_by(Longitude, Latitude)%>%
     arrange(desc(Yield)) %>% 
@@ -63,15 +72,15 @@ apsim.plots<- function(stn, results, b, wkdir){
   country <- geodata::gadm(country = b, level = 0, path = tempdir())
   country <- st_as_sf(country)
   
-  print(ggplot()+geom_polygon(data=country, aes(x="Longitude", y="Latitude"), fill = "white")+
-          geom_point(data=pd, aes(x='Longitude', y='Latitude', color= 'SowDate'), size = 2))
+  print(ggplot()+geom_sf(data=country, fill = "white")+
+          geom_point(data=pd, aes(x=Longitude, y=Latitude, color= SowDate), size = 2))
   
-  print(ggplot() +  geom_point(data=pd, aes(x=Longitude, y=Latitude, color='SowDate'), size = 2))
+  print(ggplot() +  geom_point(data=pd, aes(x=Longitude, y=Latitude, color=SowDate), size = 2))
   
-  print(ggplot()+geom_polygon(data=country, aes(x='Longitude', y='Latitude'), fill = "white")+
-          geom_point(data=pd, aes(x='Longitude', y='Latitude', color= 'Yield'), size = 2))
+  print(ggplot()+geom_sf(data=country, fill = "white")+
+          geom_point(data=pd, aes(x=Longitude, y=Latitude, color= Yield), size = 2))
   
-  print(ggplot() +  geom_point(data=pd, aes(x='Longitude', y='Latitude', color= 'Yield'), size = 2))
+  print(ggplot() +  geom_point(data=pd, aes(x=Longitude, y=Latitude, color= Yield), size = 2))
     
     return(final)
 }

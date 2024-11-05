@@ -26,7 +26,14 @@
 #'
 #' @examples
 apsimSpatialFactorial <- function(scfl, my_list_clm, wkdir, crop, clck, variety, ppln, rep1, rep2) {
-
+  # my_packages <- c("spdep", "rgdal", "maptools", "raster", "plyr", "ggplot2", "rgdal",
+  #                  "dplyr", "cowplot","readxl", "apsimx", "gtools", "foreach","doParallel",
+  #                  "ranger")
+  # list.of.packages <- my_packages
+  # new.packages <- list.of.packages[!(my_packages %in% installed.packages()[,"Package"])]
+  # if(length(new.packages)) install.packages(new.packages)
+  # lapply(my_packages, require, character.only = TRUE)
+  
   cores<- detectCores()
   myCluster <- makeCluster(cores -2, # number of cores to use
                            type = "PSOCK") # type of cluster
@@ -42,7 +49,10 @@ apsimSpatialFactorial <- function(scfl, my_list_clm, wkdir, crop, clck, variety,
   list.files(ex.dir)
   list.files(extd.dir)
   
- #APSIM PART##
+#saveRDS(my_list_sol, file="soil.RData")
+#defaultsoil<- apsimx::get_isric_soil_profile(lonlat = c(29.025, -2.725), fix = TRUE)
+  #APSIM PART##
+
   foreach (i =1:length(my_list_clm)) %dopar% {
     dir.create(paste0(extd.dir, '/', i))
     apsimx::edit_apsimx(paste0(crop), 
@@ -50,19 +60,27 @@ apsimSpatialFactorial <- function(scfl, my_list_clm, wkdir, crop, clck, variety,
                         wrt.dir = paste0(extd.dir, '/', i),
                         root = c("pd", "Base_one"),
                         node = "Weather", 
-                        value = paste0(extd.dir, "/", 'wth_loc_',i,'.met'), 
+                        value = paste0(extd.dir, "/",i,"/", 'wth_loc_',i,'.met'), 
                         overwrite = TRUE)
   }
   # Edit the soil depending on location there is an issue with soil where one may be required to edit the BD, SAT
   foreach (i =1:length(my_list_clm)) %do% {  
     setwd(paste0(extd.dir, '/', i))
-
-    tryCatch({my_list_sol[[i]]$soil$SAT <-c(0.521, 0.521, 0.497, 0.488, 0.478, 0.440)}, error=function(e) {NA}) 
+    #tryCatch({my_list_sol[[i]]$soil$BD <-  my_list_sol[[i]]$soil$BD * 0.86}, error=function(e) {NA}) 
+    #tryCatch({my_list_sol[[i]]$soil$crop.LL <-  my_list_sol[[i]]$soil$LL15 + 0.01}, error=function(e) {NA}) 
+    #tryCatch({my_list_sol[[i]]$soil$SAT <-c(0.521, 0.521, 0.497, 0.488, 0.478, 0.440)}, error=function(e) {NA}) 
     tryCatch({my_list_sol[[i]]$soil$AirDry <- my_list_sol[[i]]$soil$LL15 - 0.02}, error=function(e) {NA})
+    #tryCatch({my_list_sol[[i]]$soil$SAT <- my_list_sol[[1]]$soil- 0.02}, error=function(e) {NA})
+    #tryCatch({edit_apsimx_replace_soil_profile(crop, root = c("pd", "Base_one"), soil.profile = my_list_sol[[i]], overwrite = TRUE)}, 
              #error=function(e) {NA})
     tryCatch({edit_apsimx_replace_soil_profile(crop, root = c("pd", "Base_one"), soil.profile = my_list_sol[[i]], overwrite = TRUE)},
              error=function(e) {NA})
     }
+  
+  
+  
+  # attr <- attributes(my_list_sol[[3]]$soilwat)
+  # attr$class[2][1]
   
   #Edit clock#
   foreach (i =1:length(my_list_clm)) %dopar% {  
