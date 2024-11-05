@@ -1,21 +1,29 @@
 #Load the necessary packages needed to run the simulation line 2 to 8
-my_packages <- c("spdep", "rgdal", "maptools", "raster", "plyr", "ggplot2", "rgdal",
+my_packages <- c("spdep", "raster", "plyr", "ggplot2", "sf",
                  "dplyr", "cowplot","readxl", "apsimx", "gtools", "foreach","doParallel",
-                 "ranger")
+                 "ranger","geodata","terra")
+
 list.of.packages <- my_packages
 new.packages <- list.of.packages[!(my_packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 lapply(my_packages, require, character.only = TRUE)
 
 #Downloads the soil and prepare the weather data on run once will generate climate and soil files in APSIMx format
-source("D:/AgWise_APSIM/Scripts/01_GetSoilandWeather.R")
+wkdir <- "D:/APSIM"
+dataDir <- paste0(wkdir,"/RwandaData/")
+sourceDir <- paste0(wkdir,"/Scripts/")
+
+
+source(paste0(sourceDir,"01_GetSoilandWeather.R"))
+
+data <- GetSoilandWeather(wkdir,dataDir, sourceDir)
 
 #Read the coordinates data and change the column names line 14 to 15
-stn<- read.csv("D:/AgWise_APSIM/RwandaData/coordinates_Rwanda.csv")
+stn<- read.csv(paste0(dataDir,"coordinates_Rwanda.csv"))
 names(stn)<- c("Longitude", 'Latitude', "Location")
 stn<-stn[1:5,]
 ## Load list of met files generated in line 11
-setwd("D:/AgWise_APSIM/")
+setwd(wkdir)
 load(file="my_list_clm.RData")
 
 #Load list of soil files generated in line 11
@@ -23,12 +31,16 @@ load(file="my_list_sol.RData")
 
 ## Involves sourcing function to create spatialize apsim and also editing it example of what the function does
 #This will write 808 and apsimx files with a unique climate and soil file
-setwd("D:/AgWise_APSIM/Scripts/")
-source('02_aspimSpatialFactorial.R')
 
-SimAugSep <- apsimSpatialFactorial(scfl ="D:/AgWise_APSIM/Maize_Factorial/",
+
+setwd(sourceDir)
+source('02_aspimSpatialFactorial.R')
+scfl <- paste0(wkdir,"/Maize_Factorial/")
+wkdirprj <- paste0(wkdir,"/project/")
+
+SimAugSep <- apsimSpatialFactorial(scfl = scfl,
                                   my_list_clm = my_list_clm,
-                                  wkdir ="D:/AgWise_APSIM/project/", 
+                                  wkdir =wkdirprj, 
                                   crop = "MaizeFactorialAugSep.apsimx", 
                                   clck = c("1981-01-01T00:00:00", "2020-12-31T00:00:00"),
                                   variety = "Early",
@@ -39,47 +51,49 @@ SimAugSep <- apsimSpatialFactorial(scfl ="D:/AgWise_APSIM/Maize_Factorial/",
 ## sourcing function to run the spatialized apsim
 #This function runs all the 808 files and generates a big list of 808 files with the results for each point
 #An example of how to run this
+# resultsAugSep<-my_list_sim(crop = "MaizeFactorialAugSep.apsimx", #Name of the apsim.x files each with unique climate and soil
+#                            my_list_clm = my_list_clm, #Same list of climate files generated in line 11
+#                            extd.dir = "/home/jovyan/agwise/project", #Name of folder where you have stored the unique 808 apsimx files
+#                            stn = stn, #Name of the excel file with station cordinates
+#                            my_list_soil = my_list_sol[[1]]) #Same list of soil files generated in line 11
 
-setwd("D:/AgWise_APSIM/Scripts/")
+setwd(sourceDir)
 source('03_RunSim.R')
 
 resultsAugSep<-my_list_sim(crop = "MaizeFactorialAugSep.apsimx",
                            my_list_clm = my_list_clm, 
-                           extd.dir = "D:/AgWise_APSIM/project", 
+                           extd.dir = wkdirprj, 
                            stn = stn,
                            my_list_soil = my_list_sol)
                            
+                           # my_list_soil = my_list_sol)
+                          # my_list_soil = my_list_sol[[1]])
 
 #We save the list produces in line 60 under the file path located below
-save(resultsAugSep, file="D:/AgWise_APSIM/Maize_Results/season1_outputLA/resultsAugSep.RData")
+resultfile <- paste0(wkdir,"/Maize_Results/season1_outputLA/resultsAugSep.RData") 
+save(resultsAugSep, file=resultfile)
 
 ##Here is the post processing Section extra function to help the user visualise their results
-load(file="D:/AgWise_APSIM/Maize_Results/season1_outputLA/resultsAugSep.RData")
+load(file=resultfile)
 
 ##Sourcing Script to produce one data frame with all the results of all the 808 files; Also visualise the points in a map.
 #An example how to run the function
-library(geodata)
-library(terra)
-library(sf)
 
-setwd("D:/AgWise_APSIM/Scripts/")
+
+setwd(sourceDir)
 source('04_ApsimPlotFactorial.R')
 
 PlantingDatesAugSep<-apsim.plots(stn = stn, #Dataframe with the station coordinates
                                  results=resultsAugSep, #The list of results from line 60 that will be merged into one
                                  b= "RWANDA", #The name of the country shapefile you want
-                                 wkdir= "D:/AgWise_APSIM/project") #Path to store the large dataframe
+                                 wkdir=  wkdirprj) 
 
-setwd("D:/AgWise_APSIM/Scripts/")
-source('04_ApsimPlotFactorial.R')
 
-PlantingDatesFebMar<-apsim.plots(stn = stn,
-                                 results=resultsAugSep, 
-                                 b= "RWANDA",
-                                 wkdir= "D:/AgWise_APSIM/project") #Make a new directory, project.
+
 
 #We save the big dataframe produced in line 84 under the file path located below
-save(PlantingDatesAugSep, file="D:/AgWise_APSIM/OutputData/APSIM_MZ_SHT_S2.RData")
+outputfile <- paste0(wkdir,"/OutputData/APSIM_MZ_SHT_S2.RData") 
+save(PlantingDatesAugSep, file=outputfile)
 
 
 
