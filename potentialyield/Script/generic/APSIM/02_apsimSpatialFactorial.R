@@ -11,28 +11,40 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 
 process_grid_element_experiment <- function(i,path.to.extdata,path.to.temdata,zone,level2=NA,expfile_name,clck,varietyid,ppln,rep1,rep2) {
   
+  
   if(!is.na(level2) & !is.na(zone)){
-    pathOUT <- paste(path.to.extdata,paste0(zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+    pathOUT1 <- paste(path.to.extdata,paste0(zone,'/', level2), sep='/')
   }else if(is.na(level2) & !is.na(zone)){
-    pathOUT <- paste(path.to.extdata,paste0(zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+    pathOUT1 <- paste(path.to.extdata, paste0(zone), sep='/')
   }else if(!is.na(level2) & is.na(zone)){
     print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2) in the creation of soil and weather files. Process will stop")
     return(NULL)
   }else{
-    pathOUT <- paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-  }
-  if (!dir.exists(file.path(pathOUT))){
-    dir.create(file.path(pathOUT), recursive = TRUE)
+    pathOUT1 <- path.to.extdata
   }
   
   # Safe path, since APSIM does not take white spaces in their paths
   # Create a symbolic link to directories with provinces that have white spaces in their names
-  if (grepl(" ", pathOUT)) {
-    safe_path <- gsub(" ", "_", pathOUT)   # replace spaces with underscores
+  if (grepl(" ", pathOUT1)) {
+    safe_path <- gsub(" ", "_", pathOUT1)   # replace spaces with underscores
     if (!file.exists(safe_path)) {
-      system2("ln", args = c("-s", shQuote(pathOUT), shQuote(safe_path)))
+      system2("ln", args = c("-s", shQuote(pathOUT1), shQuote(safe_path)))
     }
-    pathOUT <- safe_path
+    pathOUT1 <- safe_path
+  }
+  
+  if(!is.na(level2) & !is.na(zone)){
+    pathOUT <- paste(pathOUT1, paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }else if(is.na(level2) & !is.na(zone)){
+    pathOUT <- paste(pathOUT1, paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }else if(!is.na(level2) & is.na(zone)){
+    print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2) in the creation of soil and weather files. Process will stop")
+    return(NULL)
+  }else{
+    pathOUT <- paste(pathOUT1, paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
+  }
+  if (!dir.exists(file.path(pathOUT))){
+    dir.create(file.path(pathOUT), recursive = TRUE)
   }
   
   setwd(pathOUT)
