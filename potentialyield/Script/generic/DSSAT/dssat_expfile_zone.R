@@ -95,42 +95,42 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     file_x$`INITIAL CONDITIONS`$SH2O<- mapply(function(sdul, slll, index) {
       slll + ((sdul-slll) * index)}, ex_profile$SDUL, ex_profile$SLLL, MoreArgs = list(index = index_soilwat), SIMPLIFY = FALSE)
     file_x$`INITIAL CONDITIONS`$ICBL <- ex_profile$SLB
-    file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])
-    file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate[i])
+    file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate)
+    file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate)
     
     if(fertilizer == T){
-      file_x$`FERTILIZERS (INORGANIC)`$FDATE <- as.POSIXct(coords$plantingDate[i]) #fertilizer at planting
+      file_x$`FERTILIZERS (INORGANIC)`$FDATE <- as.POSIXct(coords$plantingDate) #fertilizer at planting
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$TNAME <- paste0(file_x$`FERTILIZERS (INORGANIC)`$FERNAME[1], " Planting 0")
     }else{
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$TNAME <- paste0("Initial planting")
     }
     
-    file_x$`HARVEST DETAILS`$HDATE <- as.POSIXct(coords$harvestDate[i])
-    file_x$`SIMULATION CONTROLS`$SDATE <- as.POSIXct(coords$startingDate[i])
+    file_x$`HARVEST DETAILS`$HDATE <- as.POSIXct(coords$harvestDate)
+    file_x$`SIMULATION CONTROLS`$SDATE <- as.POSIXct(coords$startingDate)
     file_x$`SIMULATION CONTROLS`$NYERS <- number_years
     
     for (j in 1:plantingWindow){
       file_x$`INITIAL CONDITIONS`<- file_x$`INITIAL CONDITIONS` %>% add_row(!!!file_x$`INITIAL CONDITIONS`[file_x$`INITIAL CONDITIONS`$C==1,])
       file_x$`INITIAL CONDITIONS`[1+j,]$C <- 1+j
-      file_x$`INITIAL CONDITIONS`[1+j,]$ICDAT <- as.POSIXct(coords$startingDate[i]) %m+% weeks(j)
+      file_x$`INITIAL CONDITIONS`[1+j,]$ICDAT <- as.POSIXct(coords$startingDate) %m+% weeks(j)
       
       file_x$`PLANTING DETAILS` <- file_x$`PLANTING DETAILS` %>% add_row(!!!file_x$`PLANTING DETAILS`[file_x$`PLANTING DETAILS`$P==1,])
       file_x$`PLANTING DETAILS`[1+j,]$P <- 1+j
-      file_x$`PLANTING DETAILS`[1+j,]$PDATE <- as.POSIXct(coords$plantingDate[i]) %m+% weeks(j)
+      file_x$`PLANTING DETAILS`[1+j,]$PDATE <- as.POSIXct(coords$plantingDate) %m+% weeks(j)
       
       if(fertilizer == T){
         file_x$`FERTILIZERS (INORGANIC)` <- file_x$`FERTILIZERS (INORGANIC)` %>% add_row(!!!file_x$`FERTILIZERS (INORGANIC)`[file_x$`FERTILIZERS (INORGANIC)`$F==1,])
         file_x$`FERTILIZERS (INORGANIC)`[1+j,]$F <- 1+j
-        file_x$`FERTILIZERS (INORGANIC)`[1+j,]$FDATE <- as.POSIXct(coords$plantingDate[i]) %m+% weeks(j)
+        file_x$`FERTILIZERS (INORGANIC)`[1+j,]$FDATE <- as.POSIXct(coords$plantingDate) %m+% weeks(j)
       }
       
       file_x$`HARVEST DETAILS` <- file_x$`HARVEST DETAILS` %>% add_row(!!!file_x$`HARVEST DETAILS`[file_x$`HARVEST DETAILS`$H==1,])
-      file_x$`HARVEST DETAILS`[1+j,]$HDATE <- as.POSIXct(coords$harvestDate[i]) %m+% weeks(j)
+      file_x$`HARVEST DETAILS`[1+j,]$HDATE <- as.POSIXct(coords$harvestDate) %m+% weeks(j)
       file_x$`HARVEST DETAILS`[1+j,]$H <- 1+j
       
       file_x$`SIMULATION CONTROLS`<- file_x$`SIMULATION CONTROLS` %>% add_row(!!!file_x$`SIMULATION CONTROLS`[file_x$`SIMULATION CONTROLS`$N==1,])
       file_x$`SIMULATION CONTROLS`[1+j,]$N <- 1+j
-      file_x$`SIMULATION CONTROLS`[1+j,]$SDATE <- as.POSIXct(coords$startingDate[i]) %m+% weeks(j)
+      file_x$`SIMULATION CONTROLS`[1+j,]$SDATE <- as.POSIXct(coords$startingDate) %m+% weeks(j)
       
       file_x$`TREATMENTS                        -------------FACTOR LEVELS------------` <- file_x$`TREATMENTS                        -------------FACTOR LEVELS------------` %>% 
         add_row(!!!file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`[file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$N==1,])
@@ -154,13 +154,13 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     file_x$FIELDS$ID_SOIL<-paste0('TRAN', formatC(width = 5, as.integer((i)), flag = "0"))
     file_x$CULTIVARS$CR <- crop_code
     file_x$CULTIVARS$INGENO <- varietyid
-    file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate[i])
-    file_x$`SIMULATION CONTROLS`$SDATE <- as.POSIXct(coords$startingDate[i])
-    file_x$`HARVEST DETAILS`$HDATE <- as.POSIXct(coords$harvestDate[i])
+    file_x$`PLANTING DETAILS`$PDATE <- as.POSIXct(coords$plantingDate)
+    file_x$`SIMULATION CONTROLS`$SDATE <- as.POSIXct(coords$startingDate)
+    file_x$`HARVEST DETAILS`$HDATE <- as.POSIXct(coords$harvestDate)
     #file_x$`TREATMENTS                        -------------FACTOR LEVELS------------`$TNAME <- paste0("Trial planting")
     
     ex_profile <- suppressWarnings(DSSAT::read_sol("SOIL.SOL", id_soil = paste0('TRAN', formatC(width = 5, as.integer((i))," ", flag = "0"))))
-    file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate[i])  #Meanwhile the same date than the planting date## this is changed to a month prior to planting, right??
+    file_x$`INITIAL CONDITIONS`$ICDAT <- as.POSIXct(coords$startingDate)  #Meanwhile the same date than the planting date## this is changed to a month prior to planting, right??
     #Assume a proportion between wilting point and field capacity as initial condition
     file_x$`INITIAL CONDITIONS`$SH2O<- mapply(function(sdul, slll, index) {
       slll + ((sdul-slll) * index)}, ex_profile$SDUL, ex_profile$SLLL, MoreArgs = list(index = index_soilwat), SIMPLIFY = FALSE)
@@ -169,6 +169,7 @@ create_filex <-function(i,path.to.temdata,filex_temp,path.to.extdata,coords, AOI
     DSSAT::write_filex(file_x,paste0('EXTE', formatC(width = 4, as.integer((i)), flag = "0"),'.',crop_code,'X'))
     
   }
+  rm(file_x,ex_profile)
   gc()
 } 
 
@@ -332,6 +333,7 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
   }else{
     number_years <- 1
   }
+  rm(Soil,Rainfall)
   metaData <- unique(metaData[,c("longitude", "latitude","NAME_1","NAME_2")])
   coords <- merge(metaData,ground)
   if(!is.na(zone)){coords <- coords[coords$NAME_1==zone,]}
@@ -377,9 +379,9 @@ dssat.expfile <- function(country, useCaseName, Crop, AOI = TRUE,filex_temp, Pla
     message <- paste("Progress experiment:", i, "out of", length(indices),"zone:",zone)
     cat(message, "\n", file = log_file, append = TRUE)
 
-    create_filex(i, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
-                 coords=coords, AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
-                 zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat)
+    create_filex_(i, path.to.temdata=path.to.temdata, filex_temp=filex_temp, path.to.extdata=path.to.extdata, 
+                  coords=coords[i,], AOI=AOI, crop_code=crop_code, plantingWindow=plantingWindow, number_years=number_years, varietyid=varietyid, 
+                  zone=zone, level2=level2,fertilizer=fertilizer,geneticfiles= geneticfiles,index_soilwat=index_soilwat)
     
     message2 <- paste("Finished:", i, "out of", length(indices),"zone:",zone)
     cat(message2, "\n", file = log_file, append = TRUE)
