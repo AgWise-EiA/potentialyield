@@ -400,8 +400,6 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE,
         Variety ==long_variety ~ "Long"
       ))
     
-    print("Why was this set this way?")
-    # apsim_oni$SimulationName <- reorder(apsim_oni$SimulationName, apsim_oni$SimulationID)
     apsim_oni$SimulationName <- reorder(apsim_oni$SimulationName, apsim_oni$Date)
     
     # Save the aggregated APSIM output with ONI information
@@ -428,22 +426,23 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE,
              "Niño" = "tomato1",
              "Niña" = "royalblue2")
     
-    apsim_oni <- apsim_oni %>%mutate(doy = yday(PDAT))
+    # Here's the issue. Due to leap years some days for the same date will be +1
+    apsim_oni <- apsim_oni %>% mutate(doy = yday(PDAT))
     apsim_oni <- apsim_oni %>% mutate(date = ymd("2023-01-01") + days(doy - 1)) 
     apsim_oni$Planting_date <- format(apsim_oni$date, "%d-%b")
     
-    print("Why was this set this way?")
+    
+    apsim_oni$Sow_Date <- factor(apsim_oni$SowDate,
+                                      levels = unique(apsim_oni$SowDate[order(apsim_oni$date)]))
+    
     apsim_oni$Planting_date <- factor(apsim_oni$Planting_date,
                                       levels = unique(apsim_oni$Planting_date[order(apsim_oni$date)]))
-    # apsim_oni$Planting_date <- factor(apsim_oni$Planting_date,
-    #                                   levels = unique(apsim_oni$Planting_date[order(apsim_oni$SimulationID)]))
-    
     
     # Meand and SEM plot
     pd <- position_dodge(0.2)
     apsim_oni %>%
-      summarySE(measurevar="Yield", groupvars=c("Planting_date", "ENSO"))%>%
-      ggplot(aes(x = Planting_date, 
+      summarySE(measurevar="Yield", groupvars=c("Sow_Date", "ENSO"))%>%
+      ggplot(aes(x = Sow_Date, 
                  y = Yield, 
                  group=ENSO, 
                  color=ENSO)) +
@@ -462,14 +461,14 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE,
     
     # Heat map
     apsim_summary <- apsim_oni %>%
-      dplyr::group_by(Variety, Planting_date, ENSO) %>%
+      dplyr::group_by(Variety, Sow_Date, ENSO) %>%
       dplyr::summarise(
         Yield_mean = mean(Yield, na.rm = TRUE),
         Yield_sd   = sd(Yield, na.rm = TRUE),
         .groups = "drop"
       )
     
-    p1 <- ggplot(apsim_summary, aes(x = Planting_date, y = ENSO, fill = Yield_mean)) +
+    p1 <- ggplot(apsim_summary, aes(x = Sow_Date, y = ENSO, fill = Yield_mean)) +
       geom_tile(color = "white", linewidth = 0.1) + 
       labs(fill = expression(bold("Yield"~(kg~ha^{-1})))) +
       theme_bw() +
@@ -486,7 +485,7 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE,
       xlab(expression(bold("Planting time"))) +
       ggtitle("Mean yield")
     
-    p2 <- ggplot(apsim_summary, aes(x = Planting_date, y = ENSO, fill = Yield_sd)) +
+    p2 <- ggplot(apsim_summary, aes(x = Sow_Date, y = ENSO, fill = Yield_sd)) +
       geom_tile(color = "white", linewidth = 0.1) +
       labs(fill = expression(bold("Yield SD"~(kg~ha^{-1})))) +
       theme_bw() +
@@ -517,8 +516,8 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE,
     # Mean and SEM plot
     pd <- position_dodge(0.2)
     apsim_oni %>%
-      summarySE(measurevar="Yield", groupvars=c("Variety","Planting_date", "ENSO"))%>%
-      ggplot(aes(x = Planting_date, 
+      summarySE(measurevar="Yield", groupvars=c("Variety","Sow_Date", "ENSO"))%>%
+      ggplot(aes(x = Sow_Date, 
                  y = Yield, 
                  group=ENSO, 
                  color=ENSO)) +
@@ -542,45 +541,45 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE,
     
     
     # Heat map
-    p1 <- apsim_oni %>%
-      summarySE(measurevar="Yield", groupvars=c("Variety","Planting_date", "ENSO"))%>%
-      ggplot(aes(x=Planting_date, y=ENSO, fill=Yield))+
-      facet_grid(rows = vars(Variety))+
-      geom_tile(color="white", linewidth=0.1)+
-      labs(fill = expression(bold("Yield"~(kg~ha^{-1}))))+
-      theme_bw()+
-      theme(axis.text.x =element_text(angle=90, hjust=1),
-            legend.title = element_text(size = 11, face = "bold"),
-            legend.text = element_text(size = 9),
-            plot.title = element_text(size = 14, face = "bold",margin = margin(b = -90)))+
-      scale_fill_viridis_c()+
-      coord_equal()+
-      ylab(expression(bold("ENSO")))+xlab(expression(bold("Planting time")))+
-      ggtitle("Mean yield")
-    
-    # Continue here
-    p2 <-  apsim_oni %>%
-      summarySE(measurevar="Yield", groupvars=c("Variety","Planting_date", "ENSO"))%>%
-      ggplot(aes(x=Planting_date, y=ENSO, fill=sd))+
-      facet_grid(rows = vars(Variety))+
-      geom_tile(color="white", linewidth=0.1)+
-      labs(fill = expression(bold("Yield"~(kg~ha^{-1}))))+
-      theme_bw()+
-      theme(axis.text.x =element_text(angle=90, hjust=1),
-            legend.title = element_text(size = 11, face = "bold"),
-            legend.text = element_text(size = 9),
-            plot.title = element_text(size = 14, face = "bold",margin = margin(b = -90)))+
-      scale_fill_viridis_c()+
-      coord_equal()+
-      ylab(expression(bold("ENSO")))+xlab(expression(bold("Planting time")))+
-      ggtitle("Standard Deviation")
-    p1+p2+plot_layout(ncol = 2) 
-    
-    if(AOI==TRUE){
-      ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_ONI_HeatMap_Variety.pdf"),dpi=300, width = 12, height=6, units=c("in"))
-    }else{
-      ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_ONI_HeatMap_Variety.pdf"),dpi=300, width = 12, height=6, units=c("in"))
-    }
+    # p1 <- apsim_oni %>%
+    #   summarySE(measurevar="Yield", groupvars=c("Variety","Sow_Date", "ENSO"))%>%
+    #   ggplot(aes(x=Sow_Date, y=ENSO, fill=Yield))+
+    #   facet_grid(rows = vars(Variety))+
+    #   geom_tile(color="white", linewidth=0.1)+
+    #   labs(fill = expression(bold("Yield"~(kg~ha^{-1}))))+
+    #   theme_bw()+
+    #   theme(axis.text.x =element_text(angle=90, hjust=1),
+    #         legend.title = element_text(size = 11, face = "bold"),
+    #         legend.text = element_text(size = 9),
+    #         plot.title = element_text(size = 14, face = "bold",margin = margin(b = -90)))+
+    #   scale_fill_viridis_c()+
+    #   coord_equal()+
+    #   ylab(expression(bold("ENSO")))+xlab(expression(bold("Planting time")))+
+    #   ggtitle("Mean yield")
+    # 
+    # # Continue here
+    # p2 <-  apsim_oni %>%
+    #   summarySE(measurevar="Yield", groupvars=c("Variety","Sow_Date", "ENSO"))%>%
+    #   ggplot(aes(x=Sow_Date, y=ENSO, fill=sd))+
+    #   facet_grid(rows = vars(Variety))+
+    #   geom_tile(color="white", linewidth=0.1)+
+    #   labs(fill = expression(bold("Yield"~(kg~ha^{-1}))))+
+    #   theme_bw()+
+    #   theme(axis.text.x =element_text(angle=90, hjust=1),
+    #         legend.title = element_text(size = 11, face = "bold"),
+    #         legend.text = element_text(size = 9),
+    #         plot.title = element_text(size = 14, face = "bold",margin = margin(b = -90)))+
+    #   scale_fill_viridis_c()+
+    #   coord_equal()+
+    #   ylab(expression(bold("ENSO")))+xlab(expression(bold("Planting time")))+
+    #   ggtitle("Standard Deviation")
+    # p1+p2+plot_layout(ncol = 1) 
+    # 
+    # if(AOI==TRUE){
+    #   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_AOI_season_",season,"_ONI_HeatMap_Variety.pdf"),dpi=300, width = 12, height=6, units=c("in"))
+    # }else{
+    #   ggsave(paste0(pathOut,"useCase_", country, "_",useCaseName,"_",Crop,"_fieldData_season_",season,"_ONI_HeatMap_Variety.pdf"),dpi=300, width = 12, height=6, units=c("in"))
+    # }
     
     ## 4.6. Maps ####
     
@@ -696,7 +695,7 @@ get_ONI <- function(country, useCaseName, Crop, AOI=TRUE, season, Plot=TRUE,
     pyd$yield <-pyd$Yield
     pyd$prov <-pyd$Loc
     
-    pyd_select<-pyd[,c("NAME_1","NAME_2","lon","lat","SimulationID","SimulationName","Planting_date",
+    pyd_select<-pyd[,c("NAME_1","NAME_2","lon","lat","SimulationID","SimulationName","Sow_Date",
                        "yield","Variety","zone","ONI","ENSO","year","date","doy",
                        "ydoy", "file_name")]
     

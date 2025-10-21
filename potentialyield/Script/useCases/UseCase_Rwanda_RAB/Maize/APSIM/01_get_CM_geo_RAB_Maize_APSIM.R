@@ -11,6 +11,7 @@ country <- "Rwanda"
 useCaseName = "RAB"
 Crop = "Maize"
 varietyid <- "Early"
+varietyid <- "Dekalb_XL82"
 countryShp <- geodata::gadm(country, level = 2, path='.')
 prov <- unique(countryShp$NAME_1)
 

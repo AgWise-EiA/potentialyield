@@ -10,6 +10,22 @@ installed_packages <- packages_required %in% rownames(installed.packages())
 if(any(installed_packages == FALSE)){
   install.packages(packages_required[!installed_packages])}
 
+# load required packages
+invisible(lapply(packages_required, library, character.only = TRUE))
+
+
+get_lat_lon <- function(filepath) {
+  lines <- readLines(filepath, n = 20)  # no need to read whole file
+  
+  lat_line <- grep("^latitude", lines, value = TRUE)
+  long_line <- grep("^longitude", lines, value = TRUE)
+  
+  lat <- as.numeric(trimws(strsplit(lat_line, "=")[[1]][2]))
+  long <- as.numeric(trimws(strsplit(long_line, "=")[[1]][2]))
+  
+  return(list(lat = lat, lon = long))
+}
+
 
 read_APSIM_weather_file <- function(filepath) {
   # Read all lines
@@ -58,9 +74,6 @@ read_APSIM_weather_file <- function(filepath) {
 }
 
 
-# load required packages
-invisible(lapply(packages_required, library, character.only = TRUE))
-
 #' @param country country name
 #' @param useCaseName use case name  name
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
@@ -76,7 +89,6 @@ invisible(lapply(packages_required, library, character.only = TRUE))
 #' @examples merge_APSIM_output(country="Rwanda", useCaseName="RAB",Crop="Maize",varietyids=c("Early")
 
 merge_APSIM_output <- function(country, useCaseName, Crop, AOI = FALSE, season = NULL, varietyids, zone_folder = TRUE, level2_folder = FALSE) {
-  
   # Set up parallel processing
   num_cores <- availableCores() -3
   plan(multisession, workers = num_cores)
@@ -101,10 +113,21 @@ merge_APSIM_output <- function(country, useCaseName, Crop, AOI = FALSE, season =
     a <- list.files(path = path.to.extdata, pattern = "^HarvestReport_.*\\.parquet$$", include.dirs = TRUE, full.names = TRUE, recursive = TRUE)
     b <- list.files(path = path.to.extdata, pattern = "^wth.*\\.met$", include.dirs = TRUE, full.names = TRUE, recursive = TRUE)
     
-    results <- future_map2_dfr(a,b, function(.x,.y) {
+    results <- future_imap_dfr(a, function(.x, idx) {
+      print(paste("Processing index", idx, "file:", .x))
       tryCatch({
         file <- read_parquet(.x)
         file$file_name <- .x
+        
+        matching_weather <- b[dirname(b) == dirname(.x)][1]
+        if (!is.na(matching_weather)) {
+          coords <- get_lat_lon(matching_weather)
+          file$latitude <- coords$lat
+          file$longitude <- coords$lon
+        } else {
+          file$latitude <- NA
+          file$longitude <- NA
+        }
         
         if (level2_folder == TRUE & zone_folder == TRUE) {
           test <- mgsub(.x, c(path.to.extdata, "/EXTE.*"), c("", ""))
@@ -126,11 +149,14 @@ merge_APSIM_output <- function(country, useCaseName, Crop, AOI = FALSE, season =
         }
         file$Variety <- varietyid
         
-        wht_file <- read_APSIM_weather_file(.y)
+        # Commented out weather block
+        # wht_file <- read_APSIM_weather_file(.y)
         # file$Lat <- unique(wht_file$LAT)
         # file$Long <- unique(wht_file$LONG)
-        file$latitude <- unique(wht_file$latitude)
-        file$longitude <- unique(wht_file$longitude)
+        # lat_vals <- unique(wht_file$latitude)
+        # lon_vals <- unique(wht_file$longitude)
+        # file$latitude <- unique(wht_file$latitude)
+        # file$longitude <- unique(wht_file$longitude)
         file
       }, error = function(e) {
         cat("Error processing file:", .x, "\n", e$message, "\n")

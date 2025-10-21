@@ -38,3 +38,6 @@ duration <- end_time - start_time
 cat(duration)
 
 
+# apsimx::view_apsimx(expfile_name,
+#                     paste0("/home/jovyan/agwise-potentialyield/dataops/potentialyield/Data/useCase_", 
+#                           country, "_",useCaseName, "/", Crop, "/transform/APSIM/AOI/", varietyid, "/", zone, "/EXTE0001/"))
